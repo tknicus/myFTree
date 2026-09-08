@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gulle Family Tree</title>
+    <title>Nanoy Gulle Family Tree</title>
     <!-- Import Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -55,12 +55,19 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
+        .search-parent-box {
+            background-color: #fdfefe;
+            border: 2px solid #3498db;
+            font-weight: bold;
+            color: #2980b9;
+        }
         .btn-submit {
             background-color: #27ae60;
             color: white;
             font-weight: bold;
             cursor: pointer;
             border: none;
+            margin-top: 10px;
         }
         .btn-submit:hover {
             background-color: #219653;
@@ -160,7 +167,8 @@
         .gen-2 { background: #2ecc71; color: white; border-color: #27ae60; }
         .gen-3 { background: #9b59b6; color: white; border-color: #8e44ad; }
         .gen-4 { background: #e74c3c; color: white; border-color: #c0392b; }
-        /* Partner branch card styling */
+        .gen-5 { background: #1abc9c; color: white; border-color: #16a085; }
+        .gen-6 { background: #34495e; color: white; border-color: #2c3e50; }
         .partner-branch { background: #e67e22; color: white; border-color: #d35400; font-style: italic; }
 
         .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
@@ -194,10 +202,18 @@
                 <input type="text" id="fullName" placeholder="Pangalan sa Anak o Sakop" required>
                 <input type="text" id="partnerName" placeholder="Asawa/Bana (Kung naa kay kapares ang anak)">
                 <input type="text" id="motherName" placeholder="Inahan / Asawa sa Ginikanan (Ex: Josing o Norma)">
-                <span class="form-hint">💡 Ibutang ang ngalan sa Inahan kung ang ginikanan (sama kang Carlos Sr.) adunay daghang asawa aron mabulag sila.</span>
+                <input type="number" id="orderNum" placeholder="Pagka-sunodsunod (1 = Kamaguwangan, 2 = Sunod, etc.)" value="1" required>
+                <span class="form-hint">💡 Ibutang ang saktong order aron mosunud sila gikan sa kamaguwangan ngadto sa kamanghuran.</span>
+                
+                <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+                
+                <!-- BAG-O: Search Box para sa Dropdown -->
+                <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 Pangitaa ang Ginikanan (I-type ang ngalan dinhi)...">
+                
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
                 </select>
+                
                 <button type="submit" class="btn-submit" id="submitBtn">I-save sa Punoan</button>
                 <button type="button" class="btn-cancel" id="cancelBtn" onclick="resetForm()">Kanselahon ang Pag-edit</button>
             </form>
@@ -225,7 +241,7 @@
                 .from('family_members')
                 .select('*')
                 .order('generation_level', { ascending: true })
-                .order('order', { ascending: true });
+                .order('order', { ascending: true }); 
 
             if (error) {
                 console.error('Error:', error);
@@ -234,32 +250,49 @@
             }
 
             allMembers = data;
-            populateParentDropdown(data);
+            populateParentDropdown(allMembers, ''); // I-load tanan sugod
             renderTree(data);
         }
 
-        function populateParentDropdown(data) {
+        // GI-UPDATE: Function aron masala (filter) ang listahan sa ginikanan
+        function populateParentDropdown(data, filterText = '') {
             const select = document.getElementById('parentId');
+            const currentVal = select.value; // I-preserve ang napili kung naa
+            
             select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
+            
             data.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.id;
-                opt.textContent = `${m.full_name} ${m.partner_name ? '(Asawa: ' + m.partner_name + ')' : ''}`;
-                select.appendChild(opt);
+                const displayName = `${m.full_name} ${m.partner_name ? '(Asawa: ' + m.partner_name + ')' : ''}`;
+                
+                // I-check kung ang gi-type nag-match sa ngalan
+                if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = displayName;
+                    select.appendChild(opt);
+                }
             });
+
+            // Ibalik ang napili kung naa pa sa listahan
+            if (currentVal && Array.from(select.options).some(opt => opt.value === currentVal)) {
+                select.value = currentVal;
+            }
         }
+
+        // BAG-O: Listener kung mag-type ka sa Search Box
+        document.getElementById('searchParent').addEventListener('input', (e) => {
+            populateParentDropdown(allMembers, e.target.value);
+        });
 
         function renderTree(members) {
             const container = document.getElementById('tree-container');
             const map = {};
             const roots = [];
 
-            // Initialize map
             members.forEach(m => {
                 map[m.id] = { ...m, children: [] };
             });
 
-            // Standard hierarchy setup
             members.forEach(m => {
                 if (m.parent_id && map[m.parent_id]) {
                     map[m.parent_id].children.push(map[m.id]);
@@ -268,12 +301,10 @@
                 }
             });
 
-            // SMART MULTI-PARTNER GROUPING:
-            // Kung ang usa ka magulang (parent) naay mga anak nga lain-laing inahan (partner), 
-            // awtomatiko nato silang buhatan og sub-branch para sa matag asawa.
             Object.values(map).forEach(parent => {
                 if (parent.children && parent.children.length > 0) {
-                    // Check if children have distinct mother_name attributes
+                    parent.children.sort((a, b) => (a.order || 99) - (b.order || 99));
+
                     const partnersWithChildren = {};
                     const unassignedChildren = [];
 
@@ -289,13 +320,11 @@
                         }
                     });
 
-                    // If there are multiple partners defined or children grouped by mother, replace parent.children with partner branches
                     const partnerNames = Object.keys(partnersWithChildren);
                     if (partnerNames.length > 0) {
                         let newChildren = [];
                         
                         partnerNames.forEach(partnerName => {
-                            // Create a virtual partner branch node
                             const virtualPartnerId = `partner-${parent.id}-${partnerName}`;
                             const partnerNode = {
                                 id: virtualPartnerId,
@@ -322,7 +351,6 @@
                 let html = '<ul>';
                 nodes.forEach(node => {
                     if (node.is_virtual_partner) {
-                        // Render virtual partner branch node
                         html += `<li>
                             <div class="card partner-branch">
                                 <span class="name">♡ ${node.full_name}</span>
@@ -334,7 +362,7 @@
                     } else {
                         const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
                         let genClass = `gen-${node.generation_level}`;
-                        if (node.generation_level > 4) genClass = 'gen-4';
+                        if (node.generation_level > 6) genClass = 'gen-6';
 
                         html += `<li>
                             <div class="card ${genClass}">
@@ -365,6 +393,11 @@
             document.getElementById('fullName').value = member.full_name;
             document.getElementById('partnerName').value = member.partner_name || '';
             document.getElementById('motherName').value = member.mother_name || '';
+            document.getElementById('orderNum').value = member.order || 1;
+            
+            // I-clear ang search box ug i-reset ang listahan aron makita tanan ginikanan
+            document.getElementById('searchParent').value = '';
+            populateParentDropdown(allMembers, '');
             document.getElementById('parentId').value = member.parent_id || '';
 
             document.getElementById('form-title').textContent = `✏️ Pag-usab sa Impormasyon: ${member.full_name}`;
@@ -377,7 +410,12 @@
         window.resetForm = function() {
             editingId = null;
             document.getElementById('addForm').reset();
-            document.getElementById('form-title').textContent = '➕ Pagdugang og Bag-ong Kapamilya';
+            
+            // I-reset ang search dropdown
+            document.getElementById('searchParent').value = '';
+            populateParentDropdown(allMembers, '');
+
+            document.getElementById('form-title').textContent = `➕ Pagdugang og Bag-ong Kapamilya`;
             document.getElementById('submitBtn').textContent = 'I-save sa Punoan';
             document.getElementById('cancelBtn').style.display = 'none';
         }
@@ -388,6 +426,7 @@
             const fullName = document.getElementById('fullName').value;
             const partnerName = document.getElementById('partnerName').value;
             const motherName = document.getElementById('motherName').value;
+            const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
             const parentId = document.getElementById('parentId').value;
 
             if (editingId) {
@@ -397,6 +436,7 @@
                         full_name: fullName,
                         partner_name: partnerName ? partnerName : null,
                         mother_name: motherName ? motherName : null,
+                        order: orderNum,
                         parent_id: parentId
                     })
                     .eq('id', editingId);
@@ -421,10 +461,10 @@
                             full_name: fullName,
                             partner_name: partnerName ? partnerName : null,
                             mother_name: motherName ? motherName : null,
+                            order: orderNum,
                             parent_id: parentId,
                             generation_level: nextGen,
-                            is_deceased: false,
-                            "order": 99
+                            is_deceased: false
                         }
                     ]);
 
@@ -433,6 +473,7 @@
                 } else {
                     alert('Nalampuson nga nadugang sa pamilya!');
                     document.getElementById('addForm').reset();
+                    resetForm();
                     fetchFamilyData();
                 }
             }
