@@ -735,6 +735,7 @@
             }
         }
         
+        // --- ANG DOUBLE TAP GIGAMIT NA ANG EXACT SEARCH BOX LOGIC ---
         window.handleCardTap = function(id, event) {
             if (isMoving) return; 
 
@@ -745,8 +746,11 @@
                 if(id.startsWith('partner-')) return;
                 
                 const currentSelected = document.getElementById('filterBranch').value;
-                navigationHistory.push(currentSelected);
+                if (currentSelected !== id) {
+                    navigationHistory.push(currentSelected);
+                }
 
+                // Gagamit na sa eksaktong dropdown / search filter logic!
                 document.getElementById('filterBranch').value = id;
                 document.getElementById('filterMobileBranch').value = id;
                 
@@ -794,8 +798,15 @@
                     const pName = (m.partner_name || '').toLowerCase();
                     return fName.includes(safeFilter) || pName.includes(safeFilter);
                 });
-            } else if (!focusRootId) {
-                // Initial load: Ipakita ang Gen 0, Gen 1, ug Gen 2 aron makita gyud ang Lolo ug pamilya sa sinugdanan
+            } else if (focusRootId) {
+                // Kung naay gi-focus, i-sort aron ang gi-tap mauna sa ibabaw
+                filteredList = [...members].sort((a, b) => {
+                    if (a.id === focusRootId) return -1;
+                    if (b.id === focusRootId) return 1;
+                    return (a.generation_level || 0) - (b.generation_level || 0);
+                });
+            } else {
+                // Initial load: Gen 0 hangtod Gen 2 aron makita ang lolo ug pamilya sa sinugdanan
                 filteredList = members.filter(m => (m.generation_level || 0) <= 2);
             }
 
@@ -804,45 +815,21 @@
                 return;
             }
 
-            const map = {};
-            const roots = [];
-
-            filteredList.forEach(m => { map[m.id] = { ...m, children: [] }; });
-            filteredList.forEach(m => {
-                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id && (!focusRootId || m.id !== focusRootId)) {
-                    map[m.parent_id].children.push(map[m.id]);
-                } else {
-                    roots.push(map[m.id]);
-                }
-            });
-
-            // FIXED: Siguruha nga ang focusRootId naa gyud sa unahan ug DILI ma-overwrite sa sorting
-            let finalRoots = [];
-            if (focusRootId && map[focusRootId]) {
-                finalRoots.push(map[focusRootId]);
-                roots.forEach(r => {
-                    if (r.id !== focusRootId) finalRoots.push(r);
-                });
-            } else {
-                roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
-                finalRoots = roots;
-            }
-
             let html = '';
             if (safeFilter === '' && !focusRootId) {
                 html += `<div style="background: #eef2f7; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center; font-size: 0.85em; color: #555;">
-                    💡 <i>Gipakita ang tinuod nga punoan (Gen 0 hangtod Gen 2). Gamita ang search box sa taas aron pangitaa ang uban.</i>
+                    💡 <i>Gipakita ang tinuod nga punoan (Gen 0 hangtod Gen 2). Gamita ang search box o i-double tap ang kahon aron mag-focus.</i>
                 </div>`;
             }
 
-            finalRoots.forEach(node => {
+            filteredList.forEach(node => {
                 const fullName = node.full_name || 'Walay Ngalan';
                 const partnerName = node.partner_name || '';
                 const motherName = node.mother_name || '';
                 
-                const children = node.children || [];
+                const children = members.filter(m => m.parent_id === node.id);
 
-                html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
+                html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
                     <div class="mobile-card-header">
                         <div>
                             <span class="mobile-name">👤 ${fullName}</span>
@@ -862,7 +849,7 @@
                     });
 
                     if (children.length > 5) {
-                        html += `<small style="color:#7f8c8d; font-style:italic;">... ug uban pang mga anak. I-double tap para makita tanan.</small>`;
+                        html += `<small style="color:#7f8c8d; font-style:italic;">... ug uban pang mga anak.</small>`;
                     }
                     html += `</div>`;
                 }
