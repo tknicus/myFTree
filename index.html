@@ -352,10 +352,10 @@
         <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP) -->
         <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
-                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga (Mapaspas kung pilion nimo dinhi ang usa ka tawo):</label>
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga (Mopakita og 3 Henerasyon):</label>
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
-                    <option value="">-- Tan-awa ang Tibuok Punoan (Tanan - 700+ sakop) --</option>
+                    <option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>
                 </select>
             </div>
             <div class="zoom-buttons">
@@ -381,9 +381,11 @@
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:8px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
                 <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
-                    <option value="">-- Tan-awa ang Tanan (Tibuok Punoan) --</option>
+                    <option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>
                 </select>
             </div>
+            
+            <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
             
             <div id="mobileListContent">
                 <p>Nag-load sa mobile list...</p>
@@ -401,9 +403,9 @@
         let editingId = null;
         let currentViewMode = 'mobile';
 
-        let currentScale = 0.35;
+        let currentScale = 0.5;
         let translateX = 0;
-        let translateY = 20;
+        let translateY = 30;
         let isDragging = false;
         let startX, startY;
 
@@ -425,9 +427,8 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
-                // Sigurohon nga i-render ug i-center pag-ayo ang tree paggikan sa hidden state
                 setTimeout(() => {
-                    renderTree(allMembers);
+                    onBranchFilterChange(); // Load base on filter (3 Gens limit)
                     centerTree();
                 }, 50);
             } else {
@@ -436,7 +437,7 @@
                 mobileContainer.style.display = 'block';
                 btnMobile.classList.add('active');
                 btnTree.classList.remove('active');
-                renderMobileList(allMembers);
+                onMobileBranchFilterChange(); // Load base on filter
             }
         }
 
@@ -448,9 +449,7 @@
             if (!viewport || !content) return;
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
-            
             if (viewportWidth === 0) return;
-
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
             translateY = 30;
             updateTransform();
@@ -458,7 +457,7 @@
 
         function zoomIn() { currentScale = Math.min(currentScale + 0.15, 2.0); updateTransform(); }
         function zoomOut() { currentScale = Math.max(currentScale - 0.15, 0.1); updateTransform(); }
-        function resetZoom() { currentScale = 0.35; centerTree(); }
+        function resetZoom() { currentScale = 0.5; centerTree(); }
 
         function startDrag(clientX, clientY) {
             isDragging = true;
@@ -478,7 +477,6 @@
         viewport.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
         window.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
         window.addEventListener('mouseup', stopDrag);
-
         viewport.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: true });
@@ -509,14 +507,12 @@
             populateBranchFilterDropdown(allMembers, '');
             populateMobileBranchDropdown(allMembers, '');
             renderMobileList(allMembers);
-            
-            // Dili nato i-render dayon ang tibuok tree sa background aron dili mo-hang ang page sa sugod; i-render ra inig abli sa tree view.
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
-            select.innerHTML = '<option value="">-- Tan-awa ang Tibuok Punoan (Tanan - 700+ sakop) --</option>';
+            select.innerHTML = '<option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>';
             data.forEach(m => {
                 const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
                 if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
@@ -532,7 +528,7 @@
         function populateMobileBranchDropdown(data, filterText = '') {
             const select = document.getElementById('filterMobileBranch');
             const currentVal = select.value;
-            select.innerHTML = '<option value="">-- Tan-awa ang Tanan (Tibuok Punoan) --</option>';
+            select.innerHTML = '<option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>';
             data.forEach(m => {
                 const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
                 if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
@@ -612,15 +608,12 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
-        function renderMobileList(members) {
+        function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
             const map = {};
             const roots = [];
 
-            members.forEach(m => {
-                map[m.id] = { ...m, children: [] };
-            });
-
+            members.forEach(m => { map[m.id] = { ...m, children: [] }; });
             members.forEach(m => {
                 if (m.parent_id && map[m.parent_id]) {
                     map[m.parent_id].children.push(map[m.id]);
@@ -629,27 +622,45 @@
                 }
             });
 
-            function buildMobileHtml(nodes) {
+            // Gidugangan natog currentDepth nga counter
+            function buildMobileHtml(nodes, currentDepth = 1) {
                 if (nodes.length === 0) return '';
                 let html = '';
+                const isSearching = filterText.trim() !== '';
+
                 nodes.forEach(node => {
-                    html += `<div class="mobile-card">
-                        <div class="mobile-card-header">
-                            <div>
-                                <span class="mobile-name">👤 ${node.full_name}</span>
-                                ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
-                                ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
-                                <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
-                            </div>
-                            <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
-                        </div>`;
-                    if (node.children && node.children.length > 0) {
-                        html += `<div class="mobile-children-list">
-                            <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
-                        html += buildMobileHtml(node.children);
+                    const fullName = node.full_name;
+                    const match = isSearching ? (fullName.toLowerCase().includes(filterText.toLowerCase()) || 
+                                  (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()))) : true;
+
+                    if (match || (node.children && node.children.length > 0)) {
+                        html += `<div class="mobile-card">
+                            <div class="mobile-card-header">
+                                <div>
+                                    <span class="mobile-name">👤 ${fullName}</span>
+                                    ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
+                                    ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
+                                    <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
+                                </div>
+                                <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
+                            </div>`;
+                            
+                        if (node.children && node.children.length > 0) {
+                            // Kung nag-search or wala pa sa Depth 3, i-display ang anak
+                            if (isSearching || currentDepth < 3) {
+                                html += `<div class="mobile-children-list">
+                                    <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
+                                html += buildMobileHtml(node.children, currentDepth + 1);
+                                html += `</div>`;
+                            } else {
+                                // Gidugangan natog pahibalo kung naay gitago nga apo
+                                html += `<div class="mobile-children-list" style="border-top: 1px dashed #cbd5e1; margin-top:5px; padding-top:5px;">
+                                    <small style="color:#7f8c8d; font-style:italic;">👇 Naa pay mga anak/apo (${node.children.length} kabuok). I-focus ang sanga ni ${node.full_name} sa taas aron makita.</small>
+                                </div>`;
+                            }
+                        }
                         html += `</div>`;
                     }
-                    html += `</div>`;
                 });
                 return html;
             }
@@ -657,13 +668,16 @@
             container.innerHTML = buildMobileHtml(roots) || '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
         }
 
+        document.getElementById('searchMobile').addEventListener('input', (e) => {
+            renderMobileList(allMembers, e.target.value);
+        });
+
         function renderTree(members, focusRootId = null) {
             const container = document.getElementById('tree-container');
             const map = {};
             const roots = [];
 
             members.forEach(m => { map[m.id] = { ...m, children: [] }; });
-
             members.forEach(m => {
                 if (m.parent_id && map[m.parent_id] && (!focusRootId || m.id !== focusRootId)) {
                     map[m.parent_id].children.push(map[m.id]);
@@ -710,18 +724,27 @@
                 }
             });
 
-            function buildHtmlTree(nodes) {
+            // Gidugangan natog currentDepth nga counter
+            function buildHtmlTree(nodes, currentDepth = 1) {
                 if (nodes.length === 0) return '';
                 let html = '<ul>';
                 nodes.forEach(node => {
+                    const nextDepth = node.is_virtual_partner ? currentDepth : currentDepth + 1;
+                    
                     if (node.is_virtual_partner) {
                         html += `<li><div class="card partner-branch"><span class="name">♡ ${node.full_name}</span></div>`;
-                        if (node.children && node.children.length > 0) html += buildHtmlTree(node.children);
+                        // Ang asawa kay dili mo-ihap isip henerasyon, so currentDepth is passed
+                        if (currentDepth <= 3 && node.children && node.children.length > 0) {
+                            html += buildHtmlTree(node.children, nextDepth);
+                        }
                         html += `</li>`;
                     } else {
                         const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
                         let genClass = `gen-${node.generation_level}`;
                         if (node.generation_level > 6) genClass = 'gen-6';
+
+                        // Check if naay gitago nga descendants
+                        const hasHiddenChildren = (currentDepth >= 3 && node.children && node.children.length > 0);
 
                         html += `<li>
                             <div class="card ${genClass}">
@@ -730,8 +753,13 @@
                                 <div class="card-actions">
                                     <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
                                 </div>
+                                ${hasHiddenChildren ? `<div style="font-size: 0.75em; color: #7f8c8d; margin-top: 5px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,0.1);">👇 Naa pay mga kaliwat</div>` : ''}
                             </div>`;
-                        if (node.children && node.children.length > 0) html += buildHtmlTree(node.children);
+                            
+                        // I-render lang kung wala pa niabot sa 3rd depth
+                        if (currentDepth < 3 && node.children && node.children.length > 0) {
+                            html += buildHtmlTree(node.children, nextDepth);
+                        }
                         html += `</li>`;
                     }
                 });
