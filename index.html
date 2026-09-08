@@ -393,7 +393,7 @@
                 <span style="font-size: 0.8em; color: #27ae60; display:block; margin-bottom:8px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang porma aron siya ang ma-focus.</span>
                 <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
-                    <option value="">-- Pilia ang Tinuod nga Punoan (3 Gen Limit) --</option>
+                    <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
             </div>
             
@@ -417,7 +417,7 @@
 
         let currentScale = 0.5;
         let translateX = 0;
-        let translateY = 40;
+        let translateY = 30;
         
         let isDragging = false;
         let isMoving = false; 
@@ -440,13 +440,11 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
-                setTimeout(() => {
-                    onBranchFilterChange();
-                    centerTree();
-                }, 100);
-                setTimeout(() => {
-                    centerTree();
-                }, 350);
+                // Siguraduha nga i-render ug i-center dayon ang lolo sa tunga
+                onBranchFilterChange();
+                setTimeout(centerTree, 50);
+                setTimeout(centerTree, 200);
+                setTimeout(centerTree, 500);
             } else {
                 treeViewport.style.display = 'none';
                 controlsBar.style.display = 'none';
@@ -466,8 +464,10 @@
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
             if (viewportWidth === 0) return;
+            
+            // I-compute ang hapsay nga sentro aron ang pinaka-ulo (lolo) mo-landing gyud sa tunga
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
-            translateY = 40;
+            translateY = 30;
             updateTransform();
         }
 
@@ -598,8 +598,8 @@
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
                 renderTree(filtered, selectedId);
             }
-            setTimeout(() => centerTree(), 100);
-            setTimeout(() => centerTree(), 300);
+            setTimeout(centerTree, 50);
+            setTimeout(centerTree, 200);
         }
 
         function onMobileBranchFilterChange() {
@@ -677,7 +677,6 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
-        // --- SUPER LIGHTWEIGHT MOBILE LIST RENDERER (MAX 15 ITEMS AT ONCE) ---
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
             if (!members || members.length === 0) {
@@ -695,7 +694,6 @@
                     return fName.includes(safeFilter) || pName.includes(safeFilter);
                 });
             } else {
-                // Kon walay search, kuhaon ra ang unang 15 ka records aron DILI MO-PILIT
                 filteredList = members.slice(0, 15);
             }
 
@@ -716,7 +714,6 @@
                 const partnerName = node.partner_name || '';
                 const motherName = node.mother_name || '';
                 
-                // Pangitaon ang mga anak niini nga sakop kon naa
                 const children = members.filter(m => m.parent_id === node.id);
 
                 html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
@@ -734,7 +731,6 @@
                     html += `<div class="mobile-children-list">
                         <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${children.length}):</small>`;
                     
-                    // I-pakita lang ang unang 5 ka anak aron gaan
                     children.slice(0, 5).forEach(child => {
                         html += `<div style="font-size: 0.85em; color: #2c3e50; padding: 2px 0;">• ${child.full_name || 'Walay Ngalan'} ${child.partner_name ? '(♡ ' + child.partner_name + ')' : ''}</div>`;
                     });
