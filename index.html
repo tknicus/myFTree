@@ -572,7 +572,6 @@
             }
         }
 
-        // --- OPTIMIZED DROPDOWNS (GI-SIGURO NGA APIL ANG KASAMTANGANG SELECTED ID) ---
         function populateBranchFilterDropdown(data, filterText = '', selectedId = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = selectedId || select.value;
@@ -583,7 +582,6 @@
             
             if (safeFilter === '') {
                 listToPopulate = data.slice(0, 40);
-                // Siguraduha nga ang kasamtangang napili apil sa options bisan naa sa ubos
                 if (currentVal) {
                     const selectedMember = data.find(m => m.id === currentVal);
                     if (selectedMember && !listToPopulate.some(m => m.id === currentVal)) {
@@ -723,7 +721,6 @@
             }
         }
 
-        // BALIK SA MIAGI (HISTORY POP)
         function goBackHistory() {
             if (navigationHistory.length > 0) {
                 const prevId = navigationHistory.pop(); 
@@ -747,7 +744,6 @@
             if (tapLength < 400 && tapLength > 0) {
                 if(id.startsWith('partner-')) return;
                 
-                // I-save ang kasamtangang view sa history bago mobalhin sa bag-ong sanga
                 const currentSelected = document.getElementById('filterBranch').value;
                 navigationHistory.push(currentSelected);
 
@@ -799,7 +795,8 @@
                     return fName.includes(safeFilter) || pName.includes(safeFilter);
                 });
             } else if (!focusRootId) {
-                filteredList = members.slice(0, 15);
+                // Initial load: Ipakita ang Gen 0, Gen 1, ug Gen 2 aron makita gyud ang Lolo ug pamilya sa sinugdanan
+                filteredList = members.filter(m => (m.generation_level || 0) <= 2);
             }
 
             if (filteredList.length === 0) {
@@ -819,24 +816,26 @@
                 }
             });
 
+            // FIXED: Siguruha nga ang focusRootId naa gyud sa unahan ug DILI ma-overwrite sa sorting
+            let finalRoots = [];
             if (focusRootId && map[focusRootId]) {
-                const index = roots.findIndex(r => r.id === focusRootId);
-                if (index > -1) {
-                    roots.splice(index, 1);
-                }
-                roots.unshift(map[focusRootId]);
+                finalRoots.push(map[focusRootId]);
+                roots.forEach(r => {
+                    if (r.id !== focusRootId) finalRoots.push(r);
+                });
+            } else {
+                roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
+                finalRoots = roots;
             }
 
-            roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
-
             let html = '';
-            if (safeFilter === '' && !focusRootId && members.length > 15) {
+            if (safeFilter === '' && !focusRootId) {
                 html += `<div style="background: #eef2f7; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center; font-size: 0.85em; color: #555;">
-                    💡 <i>Gipakita ang unang 15 ka sakop aron paspas. Gamita ang search box sa taas aron pangitaa ang uban.</i>
+                    💡 <i>Gipakita ang tinuod nga punoan (Gen 0 hangtod Gen 2). Gamita ang search box sa taas aron pangitaa ang uban.</i>
                 </div>`;
             }
 
-            roots.forEach(node => {
+            finalRoots.forEach(node => {
                 const fullName = node.full_name || 'Walay Ngalan';
                 const partnerName = node.partner_name || '';
                 const motherName = node.mother_name || '';
