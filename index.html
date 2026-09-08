@@ -384,8 +384,6 @@
                 </select>
             </div>
             
-            <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
-            
             <div id="mobileListContent">
                 <p>Nag-load sa mobile list...</p>
             </div>
@@ -642,10 +640,6 @@
 
             container.innerHTML = buildMobileHtml(roots) || '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
         }
-
-        document.getElementById('searchMobile').addEventListener('input', (e) => {
-            renderMobileList(allMembers, e.target.value);
-        });
 
         function renderTree(members, focusRootId = null) {
             const container = document.getElementById('tree-container');
