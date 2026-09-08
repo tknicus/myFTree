@@ -160,6 +160,8 @@
         .gen-2 { background: #2ecc71; color: white; border-color: #27ae60; }
         .gen-3 { background: #9b59b6; color: white; border-color: #8e44ad; }
         .gen-4 { background: #e74c3c; color: white; border-color: #c0392b; }
+        /* Partner branch card styling */
+        .partner-branch { background: #e67e22; color: white; border-color: #d35400; font-style: italic; }
 
         .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
         .partner { font-size: 0.8em; opacity: 0.95; display: block; margin-top: 4px; }
@@ -189,9 +191,10 @@
         <div class="form-box">
             <h3 id="form-title">➕ Pagdugang og Bag-ong Kapamilya</h3>
             <form id="addForm">
-                <input type="text" id="fullName" placeholder="Pangalan (Ex: Carlos Gulle Sr. o Queen Gulle)" required>
-                <span class="form-hint">💡 Tip: Kung lahi ang asawa, pwede nimong himoon nga duha ka card ang amahan (Ex: Carlos Gulle Sr. ug Carlos Gulle Sr. (Norma)) aron mabulag ang mga anak.</span>
-                <input type="text" id="partnerName" placeholder="Pangalan sa Asawa/Bana (Kung naa, Ex: Norma)">
+                <input type="text" id="fullName" placeholder="Pangalan sa Anak o Sakop" required>
+                <input type="text" id="partnerName" placeholder="Asawa/Bana (Kung naa kay kapares ang anak)">
+                <input type="text" id="motherName" placeholder="Inahan / Asawa sa Ginikanan (Ex: Josing o Norma)">
+                <span class="form-hint">💡 Ibutang ang ngalan sa Inahan kung ang ginikanan (sama kang Carlos Sr.) adunay daghang asawa aron mabulag sila.</span>
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
                 </select>
@@ -251,10 +254,12 @@
             const map = {};
             const roots = [];
 
+            // Initialize map
             members.forEach(m => {
                 map[m.id] = { ...m, children: [] };
             });
 
+            // Standard hierarchy setup
             members.forEach(m => {
                 if (m.parent_id && map[m.parent_id]) {
                     map[m.parent_id].children.push(map[m.id]);
@@ -263,26 +268,87 @@
                 }
             });
 
+            // SMART MULTI-PARTNER GROUPING:
+            // Kung ang usa ka magulang (parent) naay mga anak nga lain-laing inahan (partner), 
+            // awtomatiko nato silang buhatan og sub-branch para sa matag asawa.
+            Object.values(map).forEach(parent => {
+                if (parent.children && parent.children.length > 0) {
+                    // Check if children have distinct mother_name attributes
+                    const partnersWithChildren = {};
+                    const unassignedChildren = [];
+
+                    parent.children.forEach(child => {
+                        const mother = child.mother_name ? child.mother_name.trim() : null;
+                        if (mother) {
+                            if (!partnersWithChildren[mother]) {
+                                partnersWithChildren[mother] = [];
+                            }
+                            partnersWithChildren[mother].push(child);
+                        } else {
+                            unassignedChildren.push(child);
+                        }
+                    });
+
+                    // If there are multiple partners defined or children grouped by mother, replace parent.children with partner branches
+                    const partnerNames = Object.keys(partnersWithChildren);
+                    if (partnerNames.length > 0) {
+                        let newChildren = [];
+                        
+                        partnerNames.forEach(partnerName => {
+                            // Create a virtual partner branch node
+                            const virtualPartnerId = `partner-${parent.id}-${partnerName}`;
+                            const partnerNode = {
+                                id: virtualPartnerId,
+                                full_name: `Asawa: ${partnerName}`,
+                                partner_name: null,
+                                generation_level: parent.generation_level + 1,
+                                is_virtual_partner: true,
+                                children: partnersWithChildren[partnerName]
+                            };
+                            newChildren.push(partnerNode);
+                        });
+
+                        if (unassignedChildren.length > 0) {
+                            newChildren = newChildren.concat(unassignedChildren);
+                        }
+
+                        parent.children = newChildren;
+                    }
+                }
+            });
+
             function buildHtmlTree(nodes) {
                 if (nodes.length === 0) return '';
                 let html = '<ul>';
                 nodes.forEach(node => {
-                    const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
-                    let genClass = `gen-${node.generation_level}`;
-                    if (node.generation_level > 4) genClass = 'gen-4';
+                    if (node.is_virtual_partner) {
+                        // Render virtual partner branch node
+                        html += `<li>
+                            <div class="card partner-branch">
+                                <span class="name">♡ ${node.full_name}</span>
+                            </div>`;
+                        if (node.children && node.children.length > 0) {
+                            html += buildHtmlTree(node.children);
+                        }
+                        html += `</li>`;
+                    } else {
+                        const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
+                        let genClass = `gen-${node.generation_level}`;
+                        if (node.generation_level > 4) genClass = 'gen-4';
 
-                    html += `<li>
-                        <div class="card ${genClass}">
-                            <span class="name">${node.full_name}</span>
-                            ${partnerStr}
-                            <div class="card-actions">
-                                <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
-                            </div>
-                        </div>`;
-                    if (node.children && node.children.length > 0) {
-                        html += buildHtmlTree(node.children);
+                        html += `<li>
+                            <div class="card ${genClass}">
+                                <span class="name">${node.full_name}</span>
+                                ${partnerStr}
+                                <div class="card-actions">
+                                    <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
+                                </div>
+                            </div>`;
+                        if (node.children && node.children.length > 0) {
+                            html += buildHtmlTree(node.children);
+                        }
+                        html += `</li>`;
                     }
-                    html += `</li>`;
                 });
                 html += '</ul>';
                 return html;
@@ -298,6 +364,7 @@
             editingId = id;
             document.getElementById('fullName').value = member.full_name;
             document.getElementById('partnerName').value = member.partner_name || '';
+            document.getElementById('motherName').value = member.mother_name || '';
             document.getElementById('parentId').value = member.parent_id || '';
 
             document.getElementById('form-title').textContent = `✏️ Pag-usab sa Impormasyon: ${member.full_name}`;
@@ -320,6 +387,7 @@
             
             const fullName = document.getElementById('fullName').value;
             const partnerName = document.getElementById('partnerName').value;
+            const motherName = document.getElementById('motherName').value;
             const parentId = document.getElementById('parentId').value;
 
             if (editingId) {
@@ -328,6 +396,7 @@
                     .update({
                         full_name: fullName,
                         partner_name: partnerName ? partnerName : null,
+                        mother_name: motherName ? motherName : null,
                         parent_id: parentId
                     })
                     .eq('id', editingId);
@@ -351,6 +420,7 @@
                             id: newId,
                             full_name: fullName,
                             partner_name: partnerName ? partnerName : null,
+                            mother_name: motherName ? motherName : null,
                             parent_id: parentId,
                             generation_level: nextGen,
                             is_deceased: false,
