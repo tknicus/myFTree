@@ -11,39 +11,39 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f3f8;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
         }
         .container {
             max-width: 100%;
-            width: 95%;
+            width: 100%;
             margin: auto;
             background: white;
-            padding: 30px;
+            padding: 15px;
             border-radius: 12px;
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
         }
         h1 {
             text-align: center;
             color: #2c3e50;
+            font-size: 1.5em;
         }
         .form-box {
             background: #eef2f7;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border-left: 5px solid #27ae60;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
         }
         .form-box h3 {
             margin-top: 0;
             color: #34495e;
+            font-size: 1.1em;
         }
         .form-hint {
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: #7f8c8d;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: block;
         }
         input, select, button {
@@ -53,6 +53,7 @@
             box-sizing: border-box;
             border: 1px solid #ccc;
             border-radius: 4px;
+            font-size: 0.95em;
         }
         .search-parent-box, .search-branch-box, .search-mobile-box {
             background-color: #fdfefe;
@@ -85,11 +86,11 @@
         .view-switcher {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 15px;
         }
         .view-switcher button {
-            padding: 10px 20px;
+            padding: 8px 15px;
             font-weight: bold;
             border-radius: 6px;
             border: none;
@@ -97,6 +98,7 @@
             width: auto;
             background: #e2e8f0;
             color: #475569;
+            font-size: 0.9em;
         }
         .view-switcher button.active {
             background: #27ae60;
@@ -106,13 +108,11 @@
         /* --- CONTROLS BAR --- */
         .tree-header-controls {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 10px;
             margin-bottom: 10px;
-            flex-wrap: wrap;
-            gap: 15px;
             background: #f8fafc;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
@@ -120,8 +120,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
-            flex: 1;
-            min-width: 300px;
+            width: 100%;
         }
         .branch-filter-group select {
             margin: 0;
@@ -133,10 +132,10 @@
         .zoom-buttons {
             display: flex;
             gap: 5px;
-            align-self: flex-end;
+            flex-wrap: wrap;
         }
         .zoom-buttons button {
-            padding: 6px 12px;
+            padding: 6px 10px;
             font-weight: bold;
             cursor: pointer;
             background: #3498db;
@@ -145,15 +144,13 @@
             border-radius: 4px;
             width: auto;
             margin: 0;
-        }
-        .zoom-buttons button:hover {
-            background: #2980b9;
+            font-size: 0.85em;
         }
 
         /* --- ZOOM & PAN VIEWPORT --- */
         .tree-viewport {
             width: 100%;
-            height: 650px;
+            height: 550px;
             border: 2px dashed #cbd5e1;
             border-radius: 8px;
             overflow: hidden;
@@ -169,7 +166,7 @@
             position: absolute;
             transform-origin: top center;
             transition: transform 0.1s ease-out;
-            padding: 40px;
+            padding: 20px;
             display: inline-flex;
             justify-content: center;
         }
@@ -178,41 +175,43 @@
         .mobile-view-container {
             display: none;
             width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
+            box-sizing: border-box;
         }
         .mobile-card {
             background: white;
             border: 1px solid #e2e8f0;
             border-left: 5px solid #3498db;
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             margin-bottom: 10px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            width: 100%;
         }
         .mobile-card-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 10px;
         }
         .mobile-name {
             font-weight: bold;
-            font-size: 1.05em;
+            font-size: 1em;
             color: #2c3e50;
         }
         .mobile-meta {
-            font-size: 0.85em;
+            font-size: 0.8em;
             color: #7f8c8d;
-            margin-top: 4px;
+            margin-top: 3px;
         }
         .mobile-children-list {
-            margin-top: 10px;
-            padding-left: 20px;
+            margin-top: 8px;
+            padding-left: 10px;
             border-top: 1px solid #f1f5f9;
-            padding-top: 8px;
+            padding-top: 6px;
         }
 
-        /* --- TREE STRUCTURE WITH CONNECTING LINES --- */
+        /* --- TREE STRUCTURE --- */
         .tree {
             display: inline-flex;
             justify-content: center;
@@ -269,7 +268,7 @@
             width: 0; height: 20px;
         }
 
-        /* --- COLOR CODED CARDS --- */
+        /* --- CARDS --- */
         .card {
             display: inline-block;
             padding: 10px 14px;
@@ -330,9 +329,9 @@
                 <input type="number" id="orderNum" placeholder="Pagka-sunodsunod (1 = Kamaguwangan, 2 = Sunod, etc.)" value="1" required>
                 <span class="form-hint">💡 Ibutang ang saktong order aron mosunud sila gikan sa kamaguwangan ngadto sa kamanghuran.</span>
                 
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+                <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
                 
-                <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 Pangitaa ang Ginikanan (I-type ang ngalan dinhi)...">
+                <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 Pangitaa ang Ginikanan...">
                 
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
@@ -345,29 +344,29 @@
 
         <!-- VIEW MODE SWITCHER -->
         <div class="view-switcher">
-            <button id="btnTreeView" class="active" onclick="switchView('tree')">🌳 Tree View (Computer)</button>
-            <button id="btnMobileView" onclick="switchView('mobile')">📱 Mobile List View (Cellphone)</button>
+            <button id="btnTreeView" onclick="switchView('tree')">🌳 Tree View</button>
+            <button id="btnMobileView" class="active" onclick="switchView('mobile')">📱 Mobile List View</button>
         </div>
 
-        <!-- CONTROLS: BRANCH FILTER + ZOOM -->
-        <div class="tree-header-controls" id="controlsBar">
+        <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP) -->
+        <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
-                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo (I-type dinhi)..." style="margin: 0; padding: 8px;">
+                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo..." style="margin: 0; padding: 8px;">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>
                 </select>
             </div>
             <div class="zoom-buttons">
-                <button onclick="zoomIn()">➕ Zoom In</button>
-                <button onclick="zoomOut()">➖ Zoom Out</button>
-                <button onclick="centerTree()">🎯 Center Tree</button>
-                <button onclick="resetZoom()">🔄 Reset View</button>
+                <button onclick="zoomIn()">➕ Zoom</button>
+                <button onclick="zoomOut()">➖ Zoom</button>
+                <button onclick="centerTree()">🎯 Center</button>
+                <button onclick="resetZoom()">🔄 Reset</button>
             </div>
         </div>
 
         <!-- DESKTOP TREE VIEWPORT -->
-        <div class="tree-viewport" id="treeViewport">
+        <div class="tree-viewport" id="treeViewport" style="display:none;">
             <div class="tree-content" id="treeContent">
                 <div class="tree" id="tree-container">
                     <p>Nag-load sa family tree...</p>
@@ -376,8 +375,18 @@
         </div>
 
         <!-- MOBILE CARD LIST VIEW -->
-        <div class="mobile-view-container" id="mobileContainer">
+        <div class="mobile-view-container" id="mobileContainer" style="display:block;">
+            <div style="margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:5px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
+                <!-- BAG-O: Search box para sa Mobile Branch Filter -->
+                <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga..." style="margin-bottom: 6px; padding: 8px;">
+                <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()" style="background:white; border:2px solid #27ae60; font-weight:bold; color:#2c3e50; margin:0;">
+                    <option value="">-- Tan-awa ang Tanan (Tibuok Punoan) --</option>
+                </select>
+            </div>
+            
             <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px; padding: 10px;">
+            
             <div id="mobileListContent">
                 <p>Nag-load sa mobile list...</p>
             </div>
@@ -392,9 +401,8 @@
 
         let allMembers = [];
         let editingId = null;
-        let currentViewMode = 'tree'; // 'tree' or 'mobile'
+        let currentViewMode = 'mobile';
 
-        // ZOOM & PAN STATE VARIABLES
         let currentScale = 0.5;
         let translateX = 0;
         let translateY = 30;
@@ -442,49 +450,26 @@
             updateTransform();
         }
 
-        function zoomIn() {
-            currentScale = Math.min(currentScale + 0.15, 2.0);
-            updateTransform();
-        }
+        function zoomIn() { currentScale = Math.min(currentScale + 0.15, 2.0); updateTransform(); }
+        function zoomOut() { currentScale = Math.max(currentScale - 0.15, 0.15); updateTransform(); }
+        function resetZoom() { currentScale = 0.5; centerTree(); }
 
-        function zoomOut() {
-            currentScale = Math.max(currentScale - 0.15, 0.15);
-            updateTransform();
-        }
-
-        function resetZoom() {
-            currentScale = 0.5;
-            centerTree();
-        }
-
-        // Mouse Drag / Pan Logic
         viewport.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - translateX;
             startY = e.clientY - translateY;
         });
-
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             translateX = e.clientX - startX;
             translateY = e.clientY - startY;
             updateTransform();
         });
-
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
-
-        // Mouse Wheel Zoom
+        window.addEventListener('mouseup', () => { isDragging = false; });
         viewport.addEventListener('wheel', (e) => {
             e.preventDefault();
-            if (e.deltaY < 0) {
-                zoomIn();
-            } else {
-                zoomOut();
-            }
+            if (e.deltaY < 0) zoomIn(); else zoomOut();
         }, { passive: false });
-
 
         async function fetchFamilyData() {
             const { data, error } = await supabaseClient
@@ -495,26 +480,23 @@
 
             if (error) {
                 console.error('Error:', error);
-                document.getElementById('tree-container').innerHTML = '<p style="color:red;">Wala magamit ang database connection.</p>';
                 return;
             }
 
             allMembers = data;
             populateParentDropdown(allMembers, '');
             populateBranchFilterDropdown(allMembers, '');
+            populateMobileBranchDropdown(allMembers, '');
             renderTree(data);
             renderMobileList(allMembers);
             
-            setTimeout(() => {
-                centerTree();
-            }, 100);
+            setTimeout(() => { centerTree(); }, 100);
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>';
-            
             data.forEach(m => {
                 const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
                 if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
@@ -524,27 +506,55 @@
                     select.appendChild(opt);
                 }
             });
-            if (currentVal && Array.from(select.options).some(opt => opt.value === currentVal)) {
-                select.value = currentVal;
-            }
+            if (currentVal) select.value = currentVal;
+        }
+
+        function populateMobileBranchDropdown(data, filterText = '') {
+            const select = document.getElementById('filterMobileBranch');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Tan-awa ang Tanan (Tibuok Punoan) --</option>';
+            data.forEach(m => {
+                const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
+                if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = displayName;
+                    select.appendChild(opt);
+                }
+            });
+            if (currentVal) select.value = currentVal;
         }
 
         document.getElementById('searchBranch').addEventListener('input', (e) => {
             populateBranchFilterDropdown(allMembers, e.target.value);
         });
 
+        // Search listener para sa Mobile Branch dropdown
+        document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
+            populateMobileBranchDropdown(allMembers, e.target.value);
+        });
+
         function onBranchFilterChange() {
             const selectedId = document.getElementById('filterBranch').value;
             if (!selectedId) {
                 renderTree(allMembers);
-                renderMobileList(allMembers);
             } else {
                 const targetIds = getDescendantIds(selectedId, allMembers);
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
                 renderTree(filtered, selectedId);
-                renderMobileList(filtered);
             }
             setTimeout(() => centerTree(), 100);
+        }
+
+        function onMobileBranchFilterChange() {
+            const selectedId = document.getElementById('filterMobileBranch').value;
+            if (!selectedId) {
+                renderMobileList(allMembers);
+            } else {
+                const targetIds = getDescendantIds(selectedId, allMembers);
+                const filtered = allMembers.filter(m => targetIds.has(m.id));
+                renderMobileList(filtered);
+            }
         }
 
         function getDescendantIds(rootId, members) {
@@ -567,7 +577,6 @@
             const select = document.getElementById('parentId');
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
-            
             data.forEach(m => {
                 const displayName = `${m.full_name} ${m.partner_name ? '(Asawa: ' + m.partner_name + ')' : ''}`;
                 if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
@@ -577,17 +586,13 @@
                     select.appendChild(opt);
                 }
             });
-
-            if (currentVal && Array.from(select.options).some(opt => opt.value === currentVal)) {
-                select.value = currentVal;
-            }
+            if (currentVal) select.value = currentVal;
         }
 
         document.getElementById('searchParent').addEventListener('input', (e) => {
             populateParentDropdown(allMembers, e.target.value);
         });
 
-        // Mobile List View Renderer
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
             const map = {};
@@ -610,38 +615,28 @@
                 let html = '';
                 nodes.forEach(node => {
                     const fullName = node.full_name;
-                    if (filterText === '' || fullName.toLowerCase().includes(filterText.toLowerCase()) || (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()))) {
+                    const match = filterText === '' || 
+                                  fullName.toLowerCase().includes(filterText.toLowerCase()) || 
+                                  (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()));
+
+                    if (match || (node.children && node.children.length > 0)) {
                         html += `<div class="mobile-card">
                             <div class="mobile-card-header">
                                 <div>
                                     <span class="mobile-name">👤 ${fullName}</span>
                                     ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
-                                    ${node.mother_name ? `<div class="mobile-meta">母亲 Inahan: ${node.mother_name}</div>` : ''}
-                                    <div class="mobile-meta">Henerasyon: ${node.generation_level} | Order: ${node.order || 1}</div>
+                                    ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
+                                    <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
                                 </div>
-                                <button class="btn-edit" onclick="startEdit('${node.id}')" style="padding: 5px 10px; font-size: 0.8em;">✏️ Edit</button>
+                                <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
                             </div>`;
                         if (node.children && node.children.length > 0) {
-                            html += `<div class="mobile-children-list"><small style="font-weight:bold; color:#27ae60;">Mga Anak (${node.children.length}):</small>`;
+                            html += `<div class="mobile-children-list">
+                                <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
                             html += buildMobileHtml(node.children);
                             html += `</div>`;
                         }
                         html += `</div>`;
-                    } else if (node.children && node.children.length > 0) {
-                        // Kung wala mag-match ang ginikanan pero naay match sa ilahang mga anak
-                        let childHtml = buildMobileHtml(node.children);
-                        if (childHtml !== '') {
-                            html += `<div class="mobile-card">
-                                <div class="mobile-card-header">
-                                    <div>
-                                        <span class="mobile-name">👤 ${fullName}</span>
-                                        ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
-                                    </div>
-                                    <button class="btn-edit" onclick="startEdit('${node.id}')" style="padding: 5px 10px; font-size: 0.8em;">✏️ Edit</button>
-                                </div>
-                                <div class="mobile-children-list">${childHtml}</div>
-                            </div>`;
-                        }
                     }
                 });
                 return html;
@@ -659,9 +654,7 @@
             const map = {};
             const roots = [];
 
-            members.forEach(m => {
-                map[m.id] = { ...m, children: [] };
-            });
+            members.forEach(m => { map[m.id] = { ...m, children: [] }; });
 
             members.forEach(m => {
                 if (m.parent_id && map[m.parent_id] && (!focusRootId || m.id !== focusRootId)) {
@@ -681,9 +674,7 @@
                     parent.children.forEach(child => {
                         const mother = child.mother_name ? child.mother_name.trim() : null;
                         if (mother) {
-                            if (!partnersWithChildren[mother]) {
-                                partnersWithChildren[mother] = [];
-                            }
+                            if (!partnersWithChildren[mother]) partnersWithChildren[mother] = [];
                             partnersWithChildren[mother].push(child);
                         } else {
                             unassignedChildren.push(child);
@@ -693,7 +684,6 @@
                     const partnerNames = Object.keys(partnersWithChildren);
                     if (partnerNames.length > 0) {
                         let newChildren = [];
-                        
                         partnerNames.forEach(partnerName => {
                             const virtualPartnerId = `partner-${parent.id}-${partnerName}`;
                             const partnerNode = {
@@ -706,11 +696,7 @@
                             };
                             newChildren.push(partnerNode);
                         });
-
-                        if (unassignedChildren.length > 0) {
-                            newChildren = newChildren.concat(unassignedChildren);
-                        }
-
+                        if (unassignedChildren.length > 0) newChildren = newChildren.concat(unassignedChildren);
                         parent.children = newChildren;
                     }
                 }
@@ -721,13 +707,8 @@
                 let html = '<ul>';
                 nodes.forEach(node => {
                     if (node.is_virtual_partner) {
-                        html += `<li>
-                            <div class="card partner-branch">
-                                <span class="name">♡ ${node.full_name}</span>
-                            </div>`;
-                        if (node.children && node.children.length > 0) {
-                            html += buildHtmlTree(node.children);
-                        }
+                        html += `<li><div class="card partner-branch"><span class="name">♡ ${node.full_name}</span></div>`;
+                        if (node.children && node.children.length > 0) html += buildHtmlTree(node.children);
                         html += `</li>`;
                     } else {
                         const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
@@ -742,9 +723,7 @@
                                     <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
                                 </div>
                             </div>`;
-                        if (node.children && node.children.length > 0) {
-                            html += buildHtmlTree(node.children);
-                        }
+                        if (node.children && node.children.length > 0) html += buildHtmlTree(node.children);
                         html += `</li>`;
                     }
                 });
@@ -779,10 +758,8 @@
         window.resetForm = function() {
             editingId = null;
             document.getElementById('addForm').reset();
-            
             document.getElementById('searchParent').value = '';
             populateParentDropdown(allMembers, '');
-
             document.getElementById('form-title').textContent = `➕ Pagdugang og Bag-ong Kapamilya`;
             document.getElementById('submitBtn').textContent = 'I-save sa Punoan';
             document.getElementById('cancelBtn').style.display = 'none';
@@ -792,7 +769,7 @@
             e.preventDefault();
             
             const fullName = document.getElementById('fullName').value;
-            const partnerName = document.getElementById('partnerName').value;
+            const partnerName = document.getElementById('partnerName'].value;
             const motherName = document.getElementById('motherName').value;
             const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
             const parentId = document.getElementById('parentId').value;
@@ -809,9 +786,8 @@
                     })
                     .eq('id', editingId);
 
-                if (error) {
-                    alert('Error sa pag-update: ' + error.message);
-                } else {
+                if (error) alert('Error sa pag-update: ' + error.message);
+                else {
                     alert('Nalampuson nga na-update ang impormasyon!');
                     resetForm();
                     fetchFamilyData();
@@ -823,22 +799,19 @@
 
                 const { error } = await supabaseClient
                     .from('family_members')
-                    .insert([
-                        {
-                            id: newId,
-                            full_name: fullName,
-                            partner_name: partnerName ? partnerName : null,
-                            mother_name: motherName ? motherName : null,
-                            order: orderNum,
-                            parent_id: parentId,
-                            generation_level: nextGen,
-                            is_deceased: false
-                        }
-                    ]);
+                    .insert([{
+                        id: newId,
+                        full_name: fullName,
+                        partner_name: partnerName ? partnerName : null,
+                        mother_name: motherName ? motherName : null,
+                        order: orderNum,
+                        parent_id: parentId,
+                        generation_level: nextGen,
+                        is_deceased: false
+                    }]);
 
-                if (error) {
-                    alert('Wala na-save: ' + error.message);
-                } else {
+                if (error) alert('Wala na-save: ' + error.message);
+                else {
                     alert('Nalampuson nga nadugang sa pamilya!');
                     document.getElementById('addForm').reset();
                     resetForm();
