@@ -41,6 +41,12 @@
             margin-top: 0;
             color: #34495e;
         }
+        .form-hint {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+            display: block;
+        }
         input, select, button {
             padding: 10px;
             margin: 5px 0;
@@ -158,7 +164,6 @@
         .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
         .partner { font-size: 0.8em; opacity: 0.95; display: block; margin-top: 4px; }
         
-        /* Edit button ra ang nahabilin aron luwas */
         .card-actions {
             margin-top: 8px;
             display: flex;
@@ -185,6 +190,7 @@
             <h3 id="form-title">➕ Pagdugang og Bag-ong Kapamilya</h3>
             <form id="addForm">
                 <input type="text" id="fullName" placeholder="Pangalan (Ex: Juan Gulle)" required>
+                <span class="form-hint">💡 Tip: Kung daghan ang Asawa/Bana, i-comma ra (Ex: 1st Wife Name, Rosa Amoy)</span>
                 <input type="text" id="partnerName" placeholder="Pangalan sa Asawa/Bana (Kung naa)">
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
@@ -313,7 +319,7 @@
             e.preventDefault();
             
             const fullName = document.getElementById('fullName').value;
-            const partnerName = document.getElementById('partnerName').value;
+            const partnerName = document.getElementById('partnerName'.trim()).value;
             const parentId = document.getElementById('parentId').value;
 
             if (editingId) {
