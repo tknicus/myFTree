@@ -432,13 +432,14 @@
         let editingId = null;
         let currentViewMode = 'mobile';
         let navigationHistory = [];
+        let currentFocusedBranchId = null;
 
         let currentScale = 0.5;
         let translateX = 0;
         let translateY = 40;
         
         let isDragging = false;
-        let hasMoved = false; 
+        let dragDistance = 0;
         let startX, startY;
         let startClientX, startClientY;
         
@@ -459,16 +460,14 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
-                onBranchFilterChange();
-                setTimeout(centerTree, 50);
-                setTimeout(centerTree, 200);
+                focusOnBranch(currentFocusedBranchId, true);
             } else {
                 treeViewport.style.display = 'none';
                 controlsBar.style.display = 'none';
                 mobileContainer.style.display = 'block';
                 btnMobile.classList.add('active');
                 btnTree.classList.remove('active');
-                onMobileBranchFilterChange();
+                focusOnBranch(currentFocusedBranchId, true);
             }
         }
 
@@ -509,7 +508,7 @@
 
         function startDrag(clientX, clientY) {
             isDragging = true;
-            hasMoved = false;
+            dragDistance = 0;
             startX = clientX - translateX;
             startY = clientY - translateY;
             startClientX = clientX;
@@ -519,9 +518,7 @@
         function onDrag(clientX, clientY) {
             if (!isDragging) return;
             const dist = Math.hypot(clientX - startClientX, clientY - startClientY);
-            if (dist > 5) {
-                hasMoved = true;
-            }
+            dragDistance = Math.max(dragDistance, dist);
             translateX = clientX - startX;
             translateY = clientY - startY;
             updateTransform();
@@ -570,10 +567,55 @@
                 populateBranchFilterDropdown(allMembers, '', '');
                 populateMobileBranchDropdown(allMembers, '', '');
                 
-                onMobileBranchFilterChange();
+                focusOnBranch(null, true);
             } catch (err) {
                 console.error('Fetch Exception:', err);
                 document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Wala na-load ang data.</p>';
+            }
+        }
+
+        function ensureOptionInSelect(selectId, memberId) {
+            if (!memberId) return;
+            const select = document.getElementById(selectId);
+            const exists = Array.from(select.options).some(opt => opt.value === memberId);
+            if (!exists) {
+                const member = allMembers.find(m => m.id === memberId);
+                if (member) {
+                    const opt = document.createElement('option');
+                    opt.value = member.id;
+                    opt.textContent = `${member.full_name || 'Walay Ngalan'} ${member.partner_name ? '(♡ ' + member.partner_name + ')' : ''} [Gen ${member.generation_level}]`;
+                    select.appendChild(opt);
+                }
+            }
+        }
+
+        // --- ANG MASALIGAN NGA CENTRAL FUNCTION SA PAG-FOCUS SA SANGA ---
+        function focusOnBranch(id, isFromHistory = false) {
+            if (!isFromHistory && currentFocusedBranchId !== id) {
+                navigationHistory.push(currentFocusedBranchId);
+            }
+
+            currentFocusedBranchId = id || null;
+
+            ensureOptionInSelect('filterBranch', id);
+            ensureOptionInSelect('filterMobileBranch', id);
+
+            document.getElementById('filterBranch').value = id || "";
+            document.getElementById('filterMobileBranch').value = id || "";
+
+            let filteredMembers = allMembers;
+            if (id) {
+                const targetIds = getDescendantIds(id, allMembers);
+                filteredMembers = allMembers.filter(m => targetIds.has(m.id));
+            }
+
+            if (currentViewMode === 'tree') {
+                renderTree(filteredMembers, id);
+                setTimeout(centerTree, 50);
+                setTimeout(centerTree, 150);
+            } else {
+                renderMobileList(filteredMembers, document.getElementById('searchMobile').value, id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
@@ -679,13 +721,11 @@
         }
 
         document.getElementById('searchBranch').addEventListener('input', (e) => {
-            const selectedId = document.getElementById('filterBranch').value;
-            populateBranchFilterDropdown(allMembers, e.target.value, selectedId);
+            populateBranchFilterDropdown(allMembers, e.target.value, currentFocusedBranchId);
         });
 
         document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
-            const selectedId = document.getElementById('filterMobileBranch').value;
-            populateMobileBranchDropdown(allMembers, e.target.value, selectedId);
+            populateMobileBranchDropdown(allMembers, e.target.value, currentFocusedBranchId);
         });
 
         document.getElementById('searchParent').addEventListener('input', (e) => {
@@ -694,78 +734,35 @@
 
         function onBranchFilterChange() {
             const selectedId = document.getElementById('filterBranch').value;
-            document.getElementById('filterMobileBranch').value = selectedId;
-            
-            populateBranchFilterDropdown(allMembers, document.getElementById('searchBranch').value, selectedId);
-            populateMobileBranchDropdown(allMembers, document.getElementById('searchMobileBranch').value, selectedId);
-
-            if (!selectedId) {
-                renderTree(allMembers);
-            } else {
-                const targetIds = getDescendantIds(selectedId, allMembers);
-                const filtered = allMembers.filter(m => targetIds.has(m.id));
-                renderTree(filtered, selectedId);
-            }
-            setTimeout(centerTree, 50);
-            setTimeout(centerTree, 200);
+            focusOnBranch(selectedId);
         }
 
         function onMobileBranchFilterChange() {
             const selectedId = document.getElementById('filterMobileBranch').value;
-            document.getElementById('filterBranch').value = selectedId;
-            
-            populateBranchFilterDropdown(allMembers, document.getElementById('searchBranch').value, selectedId);
-            populateMobileBranchDropdown(allMembers, document.getElementById('searchMobileBranch').value, selectedId);
-
-            if (!selectedId) {
-                renderMobileList(allMembers, '', null);
-            } else {
-                const targetIds = getDescendantIds(selectedId, allMembers);
-                const filtered = allMembers.filter(m => targetIds.has(m.id));
-                renderMobileList(filtered, '', selectedId);
-            }
+            focusOnBranch(selectedId);
         }
 
         function goBackHistory() {
             if (navigationHistory.length > 0) {
                 const prevId = navigationHistory.pop(); 
-                document.getElementById('filterBranch').value = prevId;
-                document.getElementById('filterMobileBranch').value = prevId;
-                
-                if (currentViewMode === 'tree') {
-                    onBranchFilterChange();
-                } else {
-                    onMobileBranchFilterChange();
-                }
+                focusOnBranch(prevId, true);
+            } else {
+                focusOnBranch(null, true);
             }
         }
         
-        // --- GI-FIX ANG HASMOVED CHECK ARON DILI NA MA-BLOCK ANG DOUBLE TAP ---
         window.handleCardTap = function(id, event) {
-            if (hasMoved) return; // Dili na mo-block sa saktong tap kon wala gi-drag ang screen
+            // Kon nag drag o nag lihok ang screen lapas sa 10px, ayaw gi-consider nga tap
+            if (dragDistance > 10) return;
 
             const currentTime = new Date().getTime();
             const tapLength = currentTime - lastCardTapTime;
             
             if (tapLength < 400 && tapLength > 0) {
-                if(id.startsWith('partner-')) return;
-                
-                const currentSelected = document.getElementById('filterBranch').value;
-                if (currentSelected !== id) {
-                    navigationHistory.push(currentSelected);
+                if (id && !id.startsWith('partner-')) {
+                    focusOnBranch(id);
                 }
-
-                document.getElementById('filterBranch').value = id;
-                document.getElementById('filterMobileBranch').value = id;
-                
-                if (currentViewMode === 'tree') {
-                    onBranchFilterChange();
-                } else {
-                    onMobileBranchFilterChange();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-                
-                if(event) event.preventDefault();
+                if (event) event.preventDefault();
             }
             lastCardTapTime = currentTime;
         }
@@ -803,14 +800,9 @@
                     return fName.includes(safeFilter) || pName.includes(safeFilter);
                 });
             } else if (focusRootId) {
-                filteredList = [...members].sort((a, b) => {
-                    if (a.id === focusRootId) return -1;
-                    if (b.id === focusRootId) return 1;
-                    if (a.generation_level !== b.generation_level) {
-                        return (a.generation_level || 0) - (b.generation_level || 0);
-                    }
-                    return (a.order || 0) - (b.order || 0);
-                });
+                const focusMember = members.find(m => m.id === focusRootId);
+                const others = members.filter(m => m.id !== focusRootId);
+                filteredList = focusMember ? [focusMember, ...others] : members;
             } else {
                 filteredList = members.filter(m => (m.generation_level || 0) <= 2);
             }
@@ -865,8 +857,7 @@
         }
 
         document.getElementById('searchMobile').addEventListener('input', (e) => {
-            const selectedId = document.getElementById('filterMobileBranch').value;
-            renderMobileList(allMembers, e.target.value, selectedId);
+            renderMobileList(allMembers, e.target.value, currentFocusedBranchId);
         });
 
         function renderTree(members, focusRootId = null) {
@@ -881,7 +872,7 @@
 
             members.forEach(m => { map[m.id] = { ...m, children: [] }; });
             members.forEach(m => {
-                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id && (!focusRootId || m.id !== focusRootId)) {
+                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id && m.id !== focusRootId) {
                     map[m.parent_id].children.push(map[m.id]);
                 } else {
                     roots.push(map[m.id]);
