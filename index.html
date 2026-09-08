@@ -81,14 +81,32 @@
             margin-top: 5px;
         }
 
-        /* --- ZOOM & PAN CONTROLS --- */
+        /* --- CONTROLS BAR --- */
         .tree-header-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 10px;
             flex-wrap: wrap;
+            gap: 15px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .branch-filter-group {
+            display: flex;
+            align-items: center;
             gap: 10px;
+            flex: 1;
+            min-width: 280px;
+        }
+        .branch-filter-group select {
+            margin: 0;
+            background: white;
+            border: 2px solid #27ae60;
+            font-weight: bold;
+            color: #2c3e50;
         }
         .zoom-buttons {
             display: flex;
@@ -109,9 +127,10 @@
             background: #2980b9;
         }
 
+        /* --- ZOOM & PAN VIEWPORT --- */
         .tree-viewport {
             width: 100%;
-            height: 600px;
+            height: 650px;
             border: 2px dashed #cbd5e1;
             border-radius: 8px;
             overflow: hidden;
@@ -263,9 +282,14 @@
             </form>
         </div>
 
-        <!-- TREE VIEWPORT UG ZOOM CONTROLS -->
+        <!-- CONTROLS: BRANCH FILTER + ZOOM -->
         <div class="tree-header-controls">
-            <h3>🌿 Ang Sanga sa Pamilya</h3>
+            <div class="branch-filter-group">
+                <label for="filterBranch" style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
+                <select id="filterBranch" onchange="onBranchFilterChange()">
+                    <option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>
+                </select>
+            </div>
             <div class="zoom-buttons">
                 <button onclick="zoomIn()">➕ Zoom In</button>
                 <button onclick="zoomOut()">➖ Zoom Out</button>
@@ -293,7 +317,7 @@
         let editingId = null;
 
         // ZOOM & PAN STATE VARIABLES
-        let currentScale = 0.5; // Gi-adjust gamay aron mas hayag makita ang kinatibuk-an
+        let currentScale = 0.5;
         let translateX = 0;
         let translateY = 30;
         let isDragging = false;
@@ -306,13 +330,10 @@
             content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
         }
 
-        // Awtomatikong i-center ang tibuok tree sa tunga sa screen
         function centerTree() {
             if (!viewport || !content) return;
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
-            
-            // I-compute ang husto nga center offset
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
             translateY = 30;
             updateTransform();
@@ -377,18 +398,63 @@
 
             allMembers = data;
             populateParentDropdown(allMembers, '');
+            populateBranchFilterDropdown(allMembers);
             renderTree(data);
             
-            // I-center dayon human load sa data
             setTimeout(() => {
                 centerTree();
             }, 100);
         }
 
+        // Punuon ang Branch Filter Dropdown sa ibabaw
+        function populateBranchFilterDropdown(data) {
+            const select = document.getElementById('filterBranch');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>';
+            
+            data.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
+        // Inig-ilis sa Branch Filter
+        function onBranchFilterChange() {
+            const selectedId = document.getElementById('filterBranch').value;
+            if (!selectedId) {
+                renderTree(allMembers);
+            } else {
+                // Kuhaon ang napiling miyembro ug tanan niyang kaliwat (descendants)
+                const targetIds = getDescendantIds(selectedId, allMembers);
+                const filtered = allMembers.filter(m => targetIds.has(m.id));
+                renderTree(filtered, selectedId);
+            }
+            setTimeout(() => centerTree(), 100);
+        }
+
+        // Helper: Kuhaon ang ID sa tawo ug tanan niyang anak/apo paubos
+        function getDescendantIds(rootId, members) {
+            let ids = new Set([rootId]);
+            let queue = [rootId];
+            while (queue.length > 0) {
+                let curr = queue.shift();
+                let children = members.filter(m => m.parent_id === curr);
+                for (let child of children) {
+                    if (!ids.has(child.id)) {
+                        ids.add(child.id);
+                        queue.push(child.id);
+                    }
+                }
+            }
+            return ids;
+        }
+
         function populateParentDropdown(data, filterText = '') {
             const select = document.getElementById('parentId');
             const currentVal = select.value;
-            
             select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
             
             data.forEach(m => {
@@ -410,7 +476,7 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
-        function renderTree(members) {
+        function renderTree(members, focusRootId = null) {
             const container = document.getElementById('tree-container');
             const map = {};
             const roots = [];
@@ -420,7 +486,8 @@
             });
 
             members.forEach(m => {
-                if (m.parent_id && map[m.parent_id]) {
+                // Kung naay focusRootId, ang gi-focus nga tawo ang himuong root node kung wala na ang iyang parent sa filtered list
+                if (m.parent_id && map[m.parent_id] && (!focusRootId || m.id !== focusRootId)) {
                     map[m.parent_id].children.push(map[m.id]);
                 } else {
                     roots.push(map[m.id]);
