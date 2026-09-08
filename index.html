@@ -189,9 +189,9 @@
         <div class="form-box">
             <h3 id="form-title">➕ Pagdugang og Bag-ong Kapamilya</h3>
             <form id="addForm">
-                <input type="text" id="fullName" placeholder="Pangalan (Ex: Juan Gulle)" required>
-                <span class="form-hint">💡 Tip: Kung daghan ang Asawa/Bana, i-comma ra (Ex: 1st Wife Name, Rosa Amoy)</span>
-                <input type="text" id="partnerName" placeholder="Pangalan sa Asawa/Bana (Kung naa)">
+                <input type="text" id="fullName" placeholder="Pangalan (Ex: Carlos Gulle Sr. o Queen Gulle)" required>
+                <span class="form-hint">💡 Tip: Kung lahi ang asawa, pwede nimong himoon nga duha ka card ang amahan (Ex: Carlos Gulle Sr. ug Carlos Gulle Sr. (Norma)) aron mabulag ang mga anak.</span>
+                <input type="text" id="partnerName" placeholder="Pangalan sa Asawa/Bana (Kung naa, Ex: Norma)">
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
                 </select>
@@ -241,7 +241,7 @@
             data.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
-                opt.textContent = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''}`;
+                opt.textContent = `${m.full_name} ${m.partner_name ? '(Asawa: ' + m.partner_name + ')' : ''}`;
                 select.appendChild(opt);
             });
         }
@@ -319,7 +319,7 @@
             e.preventDefault();
             
             const fullName = document.getElementById('fullName').value;
-            const partnerName = document.getElementById('partnerName'.trim()).value;
+            const partnerName = document.getElementById('partnerName').value;
             const parentId = document.getElementById('parentId').value;
 
             if (editingId) {
