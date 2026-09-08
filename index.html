@@ -383,7 +383,7 @@
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
-                <button type="button" class="btn-back-tree" onclick="resetBranchFilter()">⬅️ Balik sa Tinuod nga Punoan (Lolo)</button>
+                <button type="button" class="btn-back-tree" onclick="goBackHistory()">⬅️ Balik sa Miagi (Back)</button>
             </div>
             <div class="zoom-buttons">
                 <button onclick="zoomIn()">➕ Zoom</button>
@@ -411,7 +411,7 @@
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
-                <button type="button" class="btn-back-tree" onclick="resetBranchFilter()">⬅️ Balik sa Tinuod nga Punoan (Lolo)</button>
+                <button type="button" class="btn-back-tree" onclick="goBackHistory()">⬅️ Balik sa Miagi (Back)</button>
             </div>
             
             <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
@@ -431,6 +431,7 @@
         let allMembers = [];
         let editingId = null;
         let currentViewMode = 'mobile';
+        let navigationHistory = []; // Gihuptan ang kasaysayan sa mga na-double tap
 
         let currentScale = 0.5;
         let translateX = 0;
@@ -571,7 +572,6 @@
             }
         }
 
-        // --- OPTIMIZED DROPDOWNS (DILI MO-PILIT) ---
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
@@ -580,7 +580,7 @@
             const safeFilter = (filterText || '').trim().toLowerCase();
             let listToPopulate = data;
             if (safeFilter === '') {
-                listToPopulate = data.slice(0, 30); // Unang 30 ra una para gaan
+                listToPopulate = data.slice(0, 30);
             } else {
                 listToPopulate = data.filter(m => {
                     const fName = m.full_name || '';
@@ -697,18 +697,24 @@
             }
         }
 
-        function resetBranchFilter() {
-            document.getElementById('filterBranch').value = "";
-            document.getElementById('filterMobileBranch').value = "";
-            document.getElementById('searchBranch').value = "";
-            document.getElementById('searchMobileBranch').value = "";
-            populateBranchFilterDropdown(allMembers, '');
-            populateMobileBranchDropdown(allMembers, '');
-            
-            if (currentViewMode === 'tree') {
-                onBranchFilterChange();
+        // BALIK SA MIAGI (HISTORY POP)
+        function goBackHistory() {
+            if (navigationHistory.length > 0) {
+                const prevId = navigationHistory.pop(); // Kuhaon ang pinakaulahing giatngan
+                document.getElementById('filterBranch').value = prevId;
+                document.getElementById('filterMobileBranch').value = prevId;
+                
+                if (currentViewMode === 'tree') {
+                    onBranchFilterChange();
+                } else {
+                    onMobileBranchFilterChange();
+                }
             } else {
-                onMobileBranchFilterChange();
+                // Kung wala na sa history, i-reset na lang sa pinakaubos
+                document.getElementById('filterBranch').value = "";
+                document.getElementById('filterMobileBranch').value = "";
+                if (currentViewMode === 'tree') onBranchFilterChange();
+                else onMobileBranchFilterChange();
             }
         }
         
@@ -721,6 +727,10 @@
             if (tapLength < 400 && tapLength > 0) {
                 if(id.startsWith('partner-')) return;
                 
+                // I-save ang kasamtangang view sa history bago mobalhin sa bag-ong sanga
+                const currentSelected = document.getElementById('filterBranch').value;
+                navigationHistory.push(currentSelected);
+
                 document.getElementById('filterBranch').value = id;
                 document.getElementById('filterMobileBranch').value = id;
                 
