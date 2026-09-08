@@ -81,6 +81,21 @@
             display: none;
             margin-top: 5px;
         }
+        .btn-back-tree {
+            background-color: #e67e22;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            width: 100%;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        .btn-back-tree:hover {
+            background-color: #d35400;
+        }
 
         /* --- VIEW MODE SWITCHER --- */
         .view-switcher {
@@ -368,6 +383,7 @@
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
+                <button type="button" class="btn-back-tree" onclick="resetBranchFilter()">⬅️ Balik sa Tinuod nga Punoan (Lolo)</button>
             </div>
             <div class="zoom-buttons">
                 <button onclick="zoomIn()">➕ Zoom</button>
@@ -395,6 +411,7 @@
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
+                <button type="button" class="btn-back-tree" onclick="resetBranchFilter()">⬅️ Balik sa Tinuod nga Punoan (Lolo)</button>
             </div>
             
             <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
@@ -457,7 +474,6 @@
             content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
         }
 
-        // SMART CENTER FUNCTION: Gitumong gyud sa eksaktong tunga ang Lolo/Ugat card
         function centerTree() {
             if (!viewport || !content) return;
             const viewportWidth = viewport.clientWidth;
@@ -605,6 +621,7 @@
 
         function onBranchFilterChange() {
             const selectedId = document.getElementById('filterBranch').value;
+            document.getElementById('filterMobileBranch').value = selectedId;
             if (!selectedId) {
                 renderTree(allMembers);
             } else {
@@ -618,12 +635,29 @@
 
         function onMobileBranchFilterChange() {
             const selectedId = document.getElementById('filterMobileBranch').value;
+            document.getElementById('filterBranch').value = selectedId;
             if (!selectedId) {
                 renderMobileList(allMembers);
             } else {
                 const targetIds = getDescendantIds(selectedId, allMembers);
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
                 renderMobileList(filtered);
+            }
+        }
+
+        // BUTTON: BALIK SA TINUOD NGA PUNOAN
+        function resetBranchFilter() {
+            document.getElementById('filterBranch').value = "";
+            document.getElementById('filterMobileBranch').value = "";
+            document.getElementById('searchBranch').value = "";
+            document.getElementById('searchMobileBranch').value = "";
+            populateBranchFilterDropdown(allMembers, '');
+            populateMobileBranchDropdown(allMembers, '');
+            
+            if (currentViewMode === 'tree') {
+                onBranchFilterChange();
+            } else {
+                onMobileBranchFilterChange();
             }
         }
         
@@ -951,7 +985,7 @@
                 if (error) alert('Wala na-save: ' + error.message);
                 else {
                     alert('Nalampuson nga nadugang sa pamilya!');
-                    document.getElementById('addForm').reset();
+                    document.getElementById('addForm'].reset();
                     resetForm();
                     fetchFamilyData();
                 }
