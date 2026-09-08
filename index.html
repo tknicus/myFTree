@@ -352,10 +352,10 @@
         <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP) -->
         <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
-                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga (Mapaspas kung pilion nimo dinhi ang usa ka tawo):</label>
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
-                    <option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>
+                    <option value="">-- Tan-awa ang Tibuok Punoan (Tanan - 700+ sakop) --</option>
                 </select>
             </div>
             <div class="zoom-buttons">
@@ -370,7 +370,7 @@
         <div class="tree-viewport" id="treeViewport" style="display:none;">
             <div class="tree-content" id="treeContent">
                 <div class="tree" id="tree-container">
-                    <p>Nag-load sa family tree...</p>
+                    <p style="padding: 20px; color: #7f8c8d;">Nag-load sa tree...</p>
                 </div>
             </div>
         </div>
@@ -425,10 +425,11 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
-                // Sigurohon nga ma-center dayon pag-switch sa Tree View uban ang gamay nga delay
+                // Sigurohon nga i-render ug i-center pag-ayo ang tree paggikan sa hidden state
                 setTimeout(() => {
+                    renderTree(allMembers);
                     centerTree();
-                }, 100);
+                }, 50);
             } else {
                 treeViewport.style.display = 'none';
                 controlsBar.style.display = 'none';
@@ -448,11 +449,10 @@
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
             
-            // Kon nakatago pa ang viewport kadiyot, pwedeng 0 ang width, gani gi-handle nato kini
             if (viewportWidth === 0) return;
 
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
-            translateY = 20;
+            translateY = 30;
             updateTransform();
         }
 
@@ -508,16 +508,15 @@
             populateParentDropdown(allMembers, '');
             populateBranchFilterDropdown(allMembers, '');
             populateMobileBranchDropdown(allMembers, '');
-            renderTree(data);
             renderMobileList(allMembers);
             
-            setTimeout(() => { centerTree(); }, 150);
+            // Dili nato i-render dayon ang tibuok tree sa background aron dili mo-hang ang page sa sugod; i-render ra inig abli sa tree view.
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
-            select.innerHTML = '<option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>';
+            select.innerHTML = '<option value="">-- Tan-awa ang Tibuok Punoan (Tanan - 700+ sakop) --</option>';
             data.forEach(m => {
                 const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
                 if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
