@@ -158,23 +158,21 @@
         .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
         .partner { font-size: 0.8em; opacity: 0.95; display: block; margin-top: 4px; }
         
-        /* Action buttons inside card */
+        /* Edit button ra ang nahabilin aron luwas */
         .card-actions {
             margin-top: 8px;
             display: flex;
             justify-content: center;
-            gap: 5px;
         }
         .card-actions button {
-            padding: 3px 8px;
-            font-size: 0.75em;
+            padding: 4px 12px;
+            font-size: 0.8em;
             width: auto;
             margin: 0;
             border-radius: 3px;
             cursor: pointer;
         }
         .btn-edit { background: #f1c40f; color: #2c3e50; border: none; font-weight: bold; }
-        .btn-delete { background: #c0392b; color: white; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -211,7 +209,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let allMembers = [];
-        let editingId = null; // Variable para mahibal-an kung kinsa ang gi-edit
+        let editingId = null;
 
         async function fetchFamilyData() {
             const { data, error } = await supabaseClient
@@ -273,7 +271,6 @@
                             ${partnerStr}
                             <div class="card-actions">
                                 <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
-                                <button class="btn-delete" onclick="deleteMember('${node.id}', '${node.full_name}')">🗑️ Del</button>
                             </div>
                         </div>`;
                     if (node.children && node.children.length > 0) {
@@ -288,7 +285,6 @@
             container.innerHTML = buildHtmlTree(roots);
         }
 
-        // Tawgon kung i-click ang Edit button
         function startEdit(id) {
             const member = allMembers.find(m => m.id === id);
             if (!member) return;
@@ -305,7 +301,6 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Kanselahon ang pag-edit
         window.resetForm = function() {
             editingId = null;
             document.getElementById('addForm').reset();
@@ -314,26 +309,6 @@
             document.getElementById('cancelBtn').style.display = 'none';
         }
 
-        // Pagtangtang (Delete) og miyembro
-        window.deleteMember = async function(id, name) {
-            if (!confirm(`Sigurado ka ba nga gusto nimong tangtangon si ${name} ug ang iyang mga sakop sa pamilya?`)) {
-                return;
-            }
-
-            const { error } = await supabaseClient
-                .from('family_members')
-                .delete()
-                .eq('id', id);
-
-            if (error) {
-                alert('Wala napapas: ' + error.message);
-            } else {
-                alert('Nalampuson nga napapas gikan sa pamilya!');
-                fetchFamilyData();
-            }
-        }
-
-        // Submit handler (para sa Add OR Update)
         document.getElementById('addForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -342,7 +317,6 @@
             const parentId = document.getElementById('parentId').value;
 
             if (editingId) {
-                // UPDATE MODE
                 const { error } = await supabaseClient
                     .from('family_members')
                     .update({
@@ -360,7 +334,6 @@
                     fetchFamilyData();
                 }
             } else {
-                // INSERT MODE (ADD NEW)
                 const parent = allMembers.find(m => m.id === parentId);
                 const nextGen = parent ? (parent.generation_level + 1) : 1;
                 const newId = crypto.randomUUID();
