@@ -54,7 +54,7 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        .search-parent-box, .search-branch-box {
+        .search-parent-box, .search-branch-box, .search-mobile-box {
             background-color: #fdfefe;
             border: 2px solid #3498db;
             font-weight: bold;
@@ -79,6 +79,28 @@
             border: none;
             display: none;
             margin-top: 5px;
+        }
+
+        /* --- VIEW MODE SWITCHER --- */
+        .view-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .view-switcher button {
+            padding: 10px 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            width: auto;
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .view-switcher button.active {
+            background: #27ae60;
+            color: white;
         }
 
         /* --- CONTROLS BAR --- */
@@ -150,6 +172,44 @@
             padding: 40px;
             display: inline-flex;
             justify-content: center;
+        }
+
+        /* --- MOBILE CARD LIST VIEW CONTAINER --- */
+        .mobile-view-container {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .mobile-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .mobile-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mobile-name {
+            font-weight: bold;
+            font-size: 1.05em;
+            color: #2c3e50;
+        }
+        .mobile-meta {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-top: 4px;
+        }
+        .mobile-children-list {
+            margin-top: 10px;
+            padding-left: 20px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 8px;
         }
 
         /* --- TREE STRUCTURE WITH CONNECTING LINES --- */
@@ -258,7 +318,7 @@
 <body>
 
     <div class="container">
-        <h1>🌳 Agustin Gulle Family Tree</h1>
+        <h1>🌳 Nanoy Gulle Family Tree</h1>
         
         <!-- Porma sa Pagdugang / Pag-edit og Sakop -->
         <div class="form-box">
@@ -283,11 +343,16 @@
             </form>
         </div>
 
-        <!-- CONTROLS: BRANCH FILTER WITH SEARCH + ZOOM -->
-        <div class="tree-header-controls">
+        <!-- VIEW MODE SWITCHER -->
+        <div class="view-switcher">
+            <button id="btnTreeView" class="active" onclick="switchView('tree')">🌳 Tree View (Computer)</button>
+            <button id="btnMobileView" onclick="switchView('mobile')">📱 Mobile List View (Cellphone)</button>
+        </div>
+
+        <!-- CONTROLS: BRANCH FILTER + ZOOM -->
+        <div class="tree-header-controls" id="controlsBar">
             <div class="branch-filter-group">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
-                <!-- BAG-O: Search box para sa Focus sa Sanga -->
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo (I-type dinhi)..." style="margin: 0; padding: 8px;">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>
@@ -301,11 +366,20 @@
             </div>
         </div>
 
+        <!-- DESKTOP TREE VIEWPORT -->
         <div class="tree-viewport" id="treeViewport">
             <div class="tree-content" id="treeContent">
                 <div class="tree" id="tree-container">
                     <p>Nag-load sa family tree...</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- MOBILE CARD LIST VIEW -->
+        <div class="mobile-view-container" id="mobileContainer">
+            <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px; padding: 10px;">
+            <div id="mobileListContent">
+                <p>Nag-load sa mobile list...</p>
             </div>
         </div>
     </div>
@@ -318,6 +392,7 @@
 
         let allMembers = [];
         let editingId = null;
+        let currentViewMode = 'tree'; // 'tree' or 'mobile'
 
         // ZOOM & PAN STATE VARIABLES
         let currentScale = 0.5;
@@ -328,6 +403,31 @@
 
         const viewport = document.getElementById('treeViewport');
         const content = document.getElementById('treeContent');
+
+        function switchView(mode) {
+            currentViewMode = mode;
+            const treeViewport = document.getElementById('treeViewport');
+            const mobileContainer = document.getElementById('mobileContainer');
+            const controlsBar = document.getElementById('controlsBar');
+            const btnTree = document.getElementById('btnTreeView');
+            const btnMobile = document.getElementById('btnMobileView');
+
+            if (mode === 'tree') {
+                treeViewport.style.display = 'block';
+                controlsBar.style.display = 'flex';
+                mobileContainer.style.display = 'none';
+                btnTree.classList.add('active');
+                btnMobile.classList.remove('active');
+                setTimeout(() => centerTree(), 50);
+            } else {
+                treeViewport.style.display = 'none';
+                controlsBar.style.display = 'none';
+                mobileContainer.style.display = 'block';
+                btnMobile.classList.add('active');
+                btnTree.classList.remove('active');
+                renderMobileList(allMembers);
+            }
+        }
 
         function updateTransform() {
             content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
@@ -403,13 +503,13 @@
             populateParentDropdown(allMembers, '');
             populateBranchFilterDropdown(allMembers, '');
             renderTree(data);
+            renderMobileList(allMembers);
             
             setTimeout(() => {
                 centerTree();
             }, 100);
         }
 
-        // Punuon ang Branch Filter Dropdown uban ang Search filter
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
@@ -429,20 +529,20 @@
             }
         }
 
-        // Listener sa Branch Search Box
         document.getElementById('searchBranch').addEventListener('input', (e) => {
             populateBranchFilterDropdown(allMembers, e.target.value);
         });
 
-        // Inig-ilis sa Branch Filter
         function onBranchFilterChange() {
             const selectedId = document.getElementById('filterBranch').value;
             if (!selectedId) {
                 renderTree(allMembers);
+                renderMobileList(allMembers);
             } else {
                 const targetIds = getDescendantIds(selectedId, allMembers);
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
                 renderTree(filtered, selectedId);
+                renderMobileList(filtered);
             }
             setTimeout(() => centerTree(), 100);
         }
@@ -485,6 +585,73 @@
 
         document.getElementById('searchParent').addEventListener('input', (e) => {
             populateParentDropdown(allMembers, e.target.value);
+        });
+
+        // Mobile List View Renderer
+        function renderMobileList(members, filterText = '') {
+            const container = document.getElementById('mobileListContent');
+            const map = {};
+            const roots = [];
+
+            members.forEach(m => {
+                map[m.id] = { ...m, children: [] };
+            });
+
+            members.forEach(m => {
+                if (m.parent_id && map[m.parent_id]) {
+                    map[m.parent_id].children.push(map[m.id]);
+                } else {
+                    roots.push(map[m.id]);
+                }
+            });
+
+            function buildMobileHtml(nodes) {
+                if (nodes.length === 0) return '';
+                let html = '';
+                nodes.forEach(node => {
+                    const fullName = node.full_name;
+                    if (filterText === '' || fullName.toLowerCase().includes(filterText.toLowerCase()) || (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()))) {
+                        html += `<div class="mobile-card">
+                            <div class="mobile-card-header">
+                                <div>
+                                    <span class="mobile-name">👤 ${fullName}</span>
+                                    ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
+                                    ${node.mother_name ? `<div class="mobile-meta">母亲 Inahan: ${node.mother_name}</div>` : ''}
+                                    <div class="mobile-meta">Henerasyon: ${node.generation_level} | Order: ${node.order || 1}</div>
+                                </div>
+                                <button class="btn-edit" onclick="startEdit('${node.id}')" style="padding: 5px 10px; font-size: 0.8em;">✏️ Edit</button>
+                            </div>`;
+                        if (node.children && node.children.length > 0) {
+                            html += `<div class="mobile-children-list"><small style="font-weight:bold; color:#27ae60;">Mga Anak (${node.children.length}):</small>`;
+                            html += buildMobileHtml(node.children);
+                            html += `</div>`;
+                        }
+                        html += `</div>`;
+                    } else if (node.children && node.children.length > 0) {
+                        // Kung wala mag-match ang ginikanan pero naay match sa ilahang mga anak
+                        let childHtml = buildMobileHtml(node.children);
+                        if (childHtml !== '') {
+                            html += `<div class="mobile-card">
+                                <div class="mobile-card-header">
+                                    <div>
+                                        <span class="mobile-name">👤 ${fullName}</span>
+                                        ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
+                                    </div>
+                                    <button class="btn-edit" onclick="startEdit('${node.id}')" style="padding: 5px 10px; font-size: 0.8em;">✏️ Edit</button>
+                                </div>
+                                <div class="mobile-children-list">${childHtml}</div>
+                            </div>`;
+                        }
+                    }
+                });
+                return html;
+            }
+
+            container.innerHTML = buildMobileHtml(roots) || '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
+        }
+
+        document.getElementById('searchMobile').addEventListener('input', (e) => {
+            renderMobileList(allMembers, e.target.value);
         });
 
         function renderTree(members, focusRootId = null) {
