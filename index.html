@@ -147,7 +147,7 @@
             font-size: 0.85em;
         }
 
-        /* --- ZOOM & PAN VIEWPORT (FIXED FOR TOUCH/MOBILE DRAG) --- */
+        /* --- ZOOM & PAN VIEWPORT --- */
         .tree-viewport {
             width: 100%;
             height: 550px;
@@ -157,7 +157,7 @@
             position: relative;
             background: #fafafc;
             cursor: grab;
-            touch-action: none; /* Importante aron dili mo-scroll ang tibuok page kon i-drag ang tree */
+            touch-action: none;
         }
         .tree-viewport:active {
             cursor: grabbing;
@@ -174,7 +174,7 @@
 
         /* --- MOBILE CARD LIST VIEW CONTAINER --- */
         .mobile-view-container {
-            display: none;
+            display: block;
             width: 100%;
             box-sizing: border-box;
         }
@@ -345,12 +345,12 @@
 
         <!-- VIEW MODE SWITCHER -->
         <div class="view-switcher">
-            <button id="btnTreeView" class="active" onclick="switchView('tree')">🌳 Tree View</button>
-            <button id="btnMobileView" onclick="switchView('mobile')">📱 Mobile List View</button>
+            <button id="btnTreeView" onclick="switchView('tree')">🌳 Tree View</button>
+            <button id="btnMobileView" class="active" onclick="switchView('mobile')">📱 Mobile List View</button>
         </div>
 
-        <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP/MOBILE TREE) -->
-        <div class="tree-header-controls" id="controlsBar" style="display:flex;">
+        <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP) -->
+        <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
@@ -367,7 +367,7 @@
         </div>
 
         <!-- DESKTOP / MOBILE TREE VIEWPORT -->
-        <div class="tree-viewport" id="treeViewport" style="display:block;">
+        <div class="tree-viewport" id="treeViewport" style="display:none;">
             <div class="tree-content" id="treeContent">
                 <div class="tree" id="tree-container">
                     <p>Nag-load sa family tree...</p>
@@ -375,8 +375,8 @@
             </div>
         </div>
 
-        <!-- MOBILE CARD LIST VIEW -->
-        <div class="mobile-view-container" id="mobileContainer" style="display:none;">
+        <!-- MOBILE CARD LIST VIEW (DEFAULT) -->
+        <div class="mobile-view-container" id="mobileContainer" style="display:block;">
             <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:8px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
                 <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
@@ -399,11 +399,11 @@
 
         let allMembers = [];
         let editingId = null;
-        let currentViewMode = 'tree';
+        let currentViewMode = 'mobile';
 
-        let currentScale = 0.4;
+        let currentScale = 0.35;
         let translateX = 0;
-        let translateY = 30;
+        let translateY = 20;
         let isDragging = false;
         let startX, startY;
 
@@ -424,7 +424,11 @@
                 mobileContainer.style.display = 'none';
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
-                setTimeout(() => centerTree(), 50);
+                
+                // Sigurohon nga ma-center dayon pag-switch sa Tree View uban ang gamay nga delay
+                setTimeout(() => {
+                    centerTree();
+                }, 100);
             } else {
                 treeViewport.style.display = 'none';
                 controlsBar.style.display = 'none';
@@ -443,16 +447,19 @@
             if (!viewport || !content) return;
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
+            
+            // Kon nakatago pa ang viewport kadiyot, pwedeng 0 ang width, gani gi-handle nato kini
+            if (viewportWidth === 0) return;
+
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
-            translateY = 30;
+            translateY = 20;
             updateTransform();
         }
 
         function zoomIn() { currentScale = Math.min(currentScale + 0.15, 2.0); updateTransform(); }
-        function zoomOut() { currentScale = Math.max(currentScale - 0.15, 0.15); updateTransform(); }
-        function resetZoom() { currentScale = 0.4; centerTree(); }
+        function zoomOut() { currentScale = Math.max(currentScale - 0.15, 0.1); updateTransform(); }
+        function resetZoom() { currentScale = 0.35; centerTree(); }
 
-        // --- MOUSE & TOUCH DRAG / PAN EVENTS (MOBILE SWIPE ENABLED) ---
         function startDrag(clientX, clientY) {
             isDragging = true;
             startX = clientX - translateX;
@@ -466,31 +473,20 @@
             updateTransform();
         }
 
-        function stopDrag() {
-            isDragging = false;
-        }
+        function stopDrag() { isDragging = false; }
 
-        // Mouse Events
         viewport.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
         window.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
         window.addEventListener('mouseup', stopDrag);
 
-        // Touch Events for Mobile Cellphones
         viewport.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                startDrag(e.touches[0].clientX, e.touches[0].clientY);
-            }
+            if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: true });
-
         window.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 1) {
-                onDrag(e.touches[0].clientX, e.touches[0].clientY);
-            }
+            if (e.touches.length === 1) onDrag(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: true });
-
         window.addEventListener('touchend', stopDrag);
 
-        // Mouse Wheel Zoom
         viewport.addEventListener('wheel', (e) => {
             e.preventDefault();
             if (e.deltaY < 0) zoomIn(); else zoomOut();
@@ -515,7 +511,7 @@
             renderTree(data);
             renderMobileList(allMembers);
             
-            setTimeout(() => { centerTree(); }, 100);
+            setTimeout(() => { centerTree(); }, 150);
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
@@ -617,7 +613,7 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
-        function renderMobileList(members, filterText = '') {
+        function renderMobileList(members) {
             const container = document.getElementById('mobileListContent');
             const map = {};
             const roots = [];
@@ -638,30 +634,23 @@
                 if (nodes.length === 0) return '';
                 let html = '';
                 nodes.forEach(node => {
-                    const fullName = node.full_name;
-                    const match = filterText === '' || 
-                                  fullName.toLowerCase().includes(filterText.toLowerCase()) || 
-                                  (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()));
-
-                    if (match || (node.children && node.children.length > 0)) {
-                        html += `<div class="mobile-card">
-                            <div class="mobile-card-header">
-                                <div>
-                                    <span class="mobile-name">👤 ${fullName}</span>
-                                    ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
-                                    ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
-                                    <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
-                                </div>
-                                <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
-                            </div>`;
-                        if (node.children && node.children.length > 0) {
-                            html += `<div class="mobile-children-list">
-                                <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
-                            html += buildMobileHtml(node.children);
-                            html += `</div>`;
-                        }
+                    html += `<div class="mobile-card">
+                        <div class="mobile-card-header">
+                            <div>
+                                <span class="mobile-name">👤 ${node.full_name}</span>
+                                ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
+                                ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
+                                <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
+                            </div>
+                            <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
+                        </div>`;
+                    if (node.children && node.children.length > 0) {
+                        html += `<div class="mobile-children-list">
+                            <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
+                        html += buildMobileHtml(node.children);
                         html += `</div>`;
                     }
+                    html += `</div>`;
                 });
                 return html;
             }
