@@ -33,7 +33,20 @@
             text-align: center;
             font-size: 0.85em;
             color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .view-counter {
+            text-align: center;
+            font-size: 0.9em;
+            color: #27ae60;
+            font-weight: bold;
             margin-bottom: 20px;
+            background: #eef2f7;
+            padding: 6px;
+            border-radius: 6px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
         }
         input, select, button {
             padding: 10px;
@@ -306,6 +319,7 @@
     <div class="container">
         <h1>🌳 Agustin Gulle Family Tree</h1>
         <div class="view-subtitle">📖 View-Only Mode (Tan-awanan ra alang sa pamilya)</div>
+        <div class="view-counter" id="viewCounterDisplay">👁️ Nag-load sa views...</div>
 
         <!-- VIEW MODE SWITCHER -->
         <div class="view-switcher">
@@ -382,6 +396,32 @@
         let startClientX, startClientY;
         
         let lastCardTapTime = 0;
+
+        // --- TRACK VIEW FUNCTION ---
+        async function trackAppView() {
+            try {
+                // Susiha kung na-count na ba ni sa kasamtangang session
+                const hasViewed = sessionStorage.getItem('gulle_app_viewed');
+                if (!hasViewed) {
+                    await supabaseClient.from('page_views').insert([{}]);
+                    sessionStorage.setItem('gulle_app_viewed', 'true');
+                }
+
+                // Kuhaa ang kinatibuk-ang gidaghanon sa views
+                const { count, error } = await supabaseClient
+                    .from('page_views')
+                    .select('*', { count: 'exact', head: true });
+
+                if (!error && count !== null) {
+                    document.getElementById('viewCounterDisplay').textContent = `👁️ Kinatibuk-ang Nag-view: ${count} ka beses`;
+                } else {
+                    document.getElementById('viewCounterDisplay').textContent = `👁️ View Counter`;
+                }
+            } catch (err) {
+                console.error('Error sa view counter:', err);
+                document.getElementById('viewCounterDisplay').style.display = 'none';
+            }
+        }
 
         function switchView(mode) {
             currentViewMode = mode;
@@ -488,6 +528,9 @@
 
         async function fetchFamilyData() {
             try {
+                // I-run ang view counter ug ang data fetching dungan
+                trackAppView();
+
                 const { data, error } = await supabaseClient
                     .from('family_members')
                     .select('*')
