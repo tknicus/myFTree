@@ -269,6 +269,7 @@
             <div class="zoom-buttons">
                 <button onclick="zoomIn()">➕ Zoom In</button>
                 <button onclick="zoomOut()">➖ Zoom Out</button>
+                <button onclick="centerTree()">🎯 Center Tree</button>
                 <button onclick="resetZoom()">🔄 Reset View</button>
             </div>
         </div>
@@ -292,9 +293,9 @@
         let editingId = null;
 
         // ZOOM & PAN STATE VARIABLES
-        let currentScale = 0.8; // Sugod sa gamay nga zoom out aron makita dayon ang daghang sanga
+        let currentScale = 0.5; // Gi-adjust gamay aron mas hayag makita ang kinatibuk-an
         let translateX = 0;
-        let translateY = 20;
+        let translateY = 30;
         let isDragging = false;
         let startX, startY;
 
@@ -305,21 +306,31 @@
             content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
         }
 
+        // Awtomatikong i-center ang tibuok tree sa tunga sa screen
+        function centerTree() {
+            if (!viewport || !content) return;
+            const viewportWidth = viewport.clientWidth;
+            const contentWidth = content.scrollWidth;
+            
+            // I-compute ang husto nga center offset
+            translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
+            translateY = 30;
+            updateTransform();
+        }
+
         function zoomIn() {
             currentScale = Math.min(currentScale + 0.15, 2.0);
             updateTransform();
         }
 
         function zoomOut() {
-            currentScale = Math.max(currentScale - 0.15, 0.2); // Pwede ma-zoom out hangtod 20%
+            currentScale = Math.max(currentScale - 0.15, 0.15);
             updateTransform();
         }
 
         function resetZoom() {
-            currentScale = 0.8;
-            translateX = 0;
-            translateY = 20;
-            updateTransform();
+            currentScale = 0.5;
+            centerTree();
         }
 
         // Mouse Drag / Pan Logic
@@ -367,7 +378,11 @@
             allMembers = data;
             populateParentDropdown(allMembers, '');
             renderTree(data);
-            updateTransform();
+            
+            // I-center dayon human load sa data
+            setTimeout(() => {
+                centerTree();
+            }, 100);
         }
 
         function populateParentDropdown(data, filterText = '') {
