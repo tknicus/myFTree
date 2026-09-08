@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agustin Gulle Family Tree (View Only)</title>
+    <title>Agustin Gulle Family Tree</title>
     <!-- Import Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -27,13 +27,24 @@
             text-align: center;
             color: #2c3e50;
             font-size: 1.5em;
-            margin-bottom: 5px;
         }
-        .view-subtitle {
-            text-align: center;
-            font-size: 0.85em;
-            color: #7f8c8d;
+        .form-box {
+            background: #eef2f7;
+            padding: 15px;
+            border-radius: 8px;
             margin-bottom: 20px;
+            border-left: 5px solid #27ae60;
+        }
+        .form-box h3 {
+            margin-top: 0;
+            color: #34495e;
+            font-size: 1.1em;
+        }
+        .form-hint {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-bottom: 6px;
+            display: block;
         }
         input, select, button {
             padding: 10px;
@@ -44,11 +55,31 @@
             border-radius: 4px;
             font-size: 0.95em;
         }
-        .search-branch-box {
+        .search-parent-box, .search-branch-box {
             background-color: #fdfefe;
             border: 2px solid #3498db;
             font-weight: bold;
             color: #2980b9;
+        }
+        .btn-submit {
+            background-color: #27ae60;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            background-color: #219653;
+        }
+        .btn-cancel {
+            background-color: #e74c3c;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            display: none;
+            margin-top: 5px;
         }
         .btn-back-tree {
             background-color: #e67e22;
@@ -299,13 +330,52 @@
         .name { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 2px; }
         .partner { font-size: 0.75em; opacity: 0.95; display: block; margin-top: 2px; }
         .tree-dates { font-size: 0.7em; opacity: 0.9; margin-top: 2px; display: block; font-style: italic; }
+        
+        .card-actions {
+            margin-top: 6px;
+            display: flex;
+            justify-content: center;
+        }
+        .card-actions button {
+            padding: 3px 8px;
+            font-size: 0.75em;
+            width: auto;
+            margin: 0;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .btn-edit { background: #f1c40f; color: #2c3e50; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>🌳 Agustin Gulle Family Tree</h1>
-        <div class="view-subtitle">📖 View-Only Mode (Tan-awanan ra alang sa pamilya)</div>
+        
+        <!-- Porma sa Pagdugang / Pag-edit og Sakop -->
+        <div class="form-box">
+            <h3 id="form-title">➕ Pagdugang og Bag-ong Kapamilya</h3>
+            <form id="addForm">
+                <input type="text" id="fullName" placeholder="Pangalan sa Anak o Sakop" required>
+                <input type="text" id="partnerName" placeholder="Asawa/Bana (Kung naa kay kapares ang anak)">
+                <input type="text" id="motherName" placeholder="Inahan / Asawa sa Ginikanan (Ex: Josing o Norma)">
+                <input type="text" id="birthDate" placeholder="Petsa sa Pagkatawo (Opsyonal: Ex: 1950 o Jan 1, 1950)">
+                <input type="text" id="deathDate" placeholder="Petsa sa Pagpanaw (Kung namatay na: Ex: 2020)">
+                <input type="number" id="orderNum" placeholder="Pagka-sunodsunod (1 = Kamaguwangan, 2 = Sunod, etc.)" value="1" required>
+                <span class="form-hint">💡 Ibutang ang saktong order aron mosunud sila gikan sa kamaguwangan ngadto sa kamanghuran.</span>
+                
+                <hr style="border: 0; border-top: 1px solid #ccc; margin: 12px 0;">
+                
+                <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 I-type aron mangita sa Ginikanan...">
+                
+                <select id="parentId" required>
+                    <option value="">-- Pilia ang Ginikanan --</option>
+                </select>
+                
+                <button type="submit" class="btn-submit" id="submitBtn">I-save sa Punoan</button>
+                <button type="button" class="btn-cancel" id="cancelBtn" onclick="resetForm()">Kanselahon ang Pag-edit</button>
+            </form>
+        </div>
 
         <!-- VIEW MODE SWITCHER -->
         <div class="view-switcher">
@@ -353,7 +423,7 @@
                 <button type="button" class="btn-back-tree" onclick="goBackHistory()">⬅️ Balik sa Miagi (Back)</button>
             </div>
             
-            <input type="text" id="searchMobile" class="search-branch-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
+            <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
             
             <div id="mobileListContent">
                 <p>Nag-load sa mobile list...</p>
@@ -368,6 +438,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let allMembers = [];
+        let editingId = null;
         let currentViewMode = 'mobile';
         let navigationHistory = [];
         let currentFocusedBranchId = null;
@@ -501,6 +572,7 @@
                 }
 
                 allMembers = data || [];
+                populateParentDropdown(allMembers, '');
                 populateBranchFilterDropdown(allMembers, '', '');
                 populateMobileBranchDropdown(allMembers, '', '');
                 
@@ -627,12 +699,45 @@
             if (currentVal) select.value = currentVal;
         }
 
+        function populateParentDropdown(data, filterText = '') {
+            const select = document.getElementById('parentId');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
+            
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let listToPopulate = data;
+            if (safeFilter === '') {
+                listToPopulate = data.slice(0, 30);
+            } else {
+                listToPopulate = data.filter(m => {
+                    const fName = m.full_name || '';
+                    const pName = m.partner_name || '';
+                    return `${fName} ${pName}`.toLowerCase().includes(safeFilter);
+                }).slice(0, 50);
+            }
+
+            listToPopulate.forEach(m => {
+                const fName = m.full_name || 'Walay Ngalan';
+                const pName = m.partner_name ? `(Asawa: ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName}`;
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = displayName;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
         document.getElementById('searchBranch').addEventListener('input', (e) => {
             populateBranchFilterDropdown(allMembers, e.target.value, currentFocusedBranchId);
         });
 
         document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
             populateMobileBranchDropdown(allMembers, e.target.value, currentFocusedBranchId);
+        });
+
+        document.getElementById('searchParent').addEventListener('input', (e) => {
+            populateParentDropdown(allMembers, e.target.value);
         });
 
         function onBranchFilterChange() {
@@ -740,6 +845,7 @@
                             ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
                             <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
                         </div>
+                        <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
                     </div>`;
                     
                 if (children.length > 0) {
@@ -855,6 +961,9 @@
                                 <span class="name">${fullName}</span>
                                 ${dateSub ? `<span class="tree-dates">${dateSub}</span>` : ''}
                                 ${partnerStr}
+                                <div class="card-actions">
+                                    <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
+                                </div>
                                 ${hasHiddenChildren ? `<div style="font-size: 0.75em; color: #7f8c8d; margin-top: 5px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,0.1);">👇 Naa pay mga kaliwat</div>` : ''}
                             </div>`;
                             
@@ -875,6 +984,117 @@
                 container.innerHTML = '<p style="color:red; padding:20px;">Naay error sa pagpakita sa tree.</p>';
             }
         }
+
+        function startEdit(id) {
+            const member = allMembers.find(m => m.id === id);
+            if (!member) return;
+
+            editingId = id;
+            document.getElementById('fullName').value = member.full_name || '';
+            document.getElementById('partnerName').value = member.partner_name || '';
+            document.getElementById('motherName').value = member.mother_name || '';
+            document.getElementById('birthDate').value = member.birth_date || '';
+            document.getElementById('deathDate').value = member.death_date || '';
+            document.getElementById('orderNum').value = member.order || 1;
+            
+            document.getElementById('searchParent').value = '';
+            populateParentDropdown(allMembers, '');
+            document.getElementById('parentId').value = member.parent_id || '';
+
+            document.getElementById('form-title').textContent = `✏️ Pag-usab sa Impormasyon: ${member.full_name || 'Sakop'}`;
+            document.getElementById('submitBtn').textContent = 'I-update ang Punoan';
+            document.getElementById('cancelBtn').style.display = 'block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.resetForm = function() {
+            editingId = null;
+            document.getElementById('addForm').reset();
+            document.getElementById('searchParent').value = '';
+            populateParentDropdown(allMembers, '');
+            document.getElementById('form-title').textContent = `➕ Pagdugang og Bag-ong Kapamilya`;
+            document.getElementById('submitBtn').textContent = 'I-save sa Punoan';
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('fullName').value;
+            const partnerName = document.getElementById('partnerName').value;
+            const motherName = document.getElementById('motherName').value;
+            const birthDate = document.getElementById('birthDate').value;
+            const deathDate = document.getElementById('deathDate').value;
+            const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
+            const parentId = document.getElementById('parentId').value;
+
+            // --- CONFIRMATION DIALOG SA DILI PA MAG-SAVE O MAG-UPDATE ---
+            const actionText = editingId ? "I-update" : "I-save";
+            const parentMember = allMembers.find(m => m.id === parentId);
+            const parentNameDisplay = parentMember ? parentMember.full_name : "Wala (Ulo sa Punoan)";
+
+            const confirmMessage = `⚠️ SIGURO KA BA NGA ${actionText.toUpperCase()} KINING IMPORMASYON?\n\n` +
+                `👤 Ngalan: ${fullName}\n` +
+                `🔢 Pagka-sunodsunod (Order): ${orderNum}\n` +
+                `🌳 Ginikanan: ${parentNameDisplay}\n` +
+                `📅 Natawo: ${birthDate || 'Wala gibutang'}\n` +
+                `† Panaw: ${deathDate || 'Wala'}\n\n` +
+                `I-klik ang [OK] aron madayon, o [Cancel] kon gusto nimo usbon.`;
+
+            if (!confirm(confirmMessage)) {
+                return; // Hunongon ang submission kon gi-cancel sa user
+            }
+
+            if (editingId) {
+                const { error } = await supabaseClient
+                    .from('family_members')
+                    .update({
+                        full_name: fullName,
+                        partner_name: partnerName ? partnerName : null,
+                        mother_name: motherName ? motherName : null,
+                        birth_date: birthDate ? birthDate : null,
+                        death_date: deathDate ? deathDate : null,
+                        order: orderNum,
+                        parent_id: parentId
+                    })
+                    .eq('id', editingId);
+
+                if (error) alert('Error sa pag-update: ' + error.message);
+                else {
+                    alert('Nalampuson nga na-update ang impormasyon!');
+                    resetForm();
+                    fetchFamilyData();
+                }
+            } else {
+                const parent = allMembers.find(m => m.id === parentId);
+                const nextGen = parent ? (parent.generation_level + 1) : 1;
+                const newId = crypto.randomUUID();
+
+                const { error } = await supabaseClient
+                    .from('family_members')
+                    .insert([{
+                        id: newId,
+                        full_name: fullName,
+                        partner_name: partnerName ? partnerName : null,
+                        mother_name: motherName ? motherName : null,
+                        birth_date: birthDate ? birthDate : null,
+                        death_date: deathDate ? deathDate : null,
+                        order: orderNum,
+                        parent_id: parentId,
+                        generation_level: nextGen,
+                        is_deceased: deathDate ? true : false
+                    }]);
+
+                if (error) alert('Wala na-save: ' + error.message);
+                else {
+                    alert('Nalampuson nga nadugang sa pamilya!');
+                    document.getElementById('addForm').reset();
+                    resetForm();
+                    fetchFamilyData();
+                }
+            }
+        });
 
         fetchFamilyData();
     </script>
