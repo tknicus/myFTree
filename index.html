@@ -54,7 +54,7 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        .search-parent-box {
+        .search-parent-box, .search-branch-box {
             background-color: #fdfefe;
             border: 2px solid #3498db;
             font-weight: bold;
@@ -96,10 +96,10 @@
         }
         .branch-filter-group {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 5px;
             flex: 1;
-            min-width: 280px;
+            min-width: 300px;
         }
         .branch-filter-group select {
             margin: 0;
@@ -111,6 +111,7 @@
         .zoom-buttons {
             display: flex;
             gap: 5px;
+            align-self: flex-end;
         }
         .zoom-buttons button {
             padding: 6px 12px;
@@ -282,10 +283,12 @@
             </form>
         </div>
 
-        <!-- CONTROLS: BRANCH FILTER + ZOOM -->
+        <!-- CONTROLS: BRANCH FILTER WITH SEARCH + ZOOM -->
         <div class="tree-header-controls">
             <div class="branch-filter-group">
-                <label for="filterBranch" style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
+                <!-- BAG-O: Search box para sa Focus sa Sanga -->
+                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo (I-type dinhi)..." style="margin: 0; padding: 8px;">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>
                 </select>
@@ -398,7 +401,7 @@
 
             allMembers = data;
             populateParentDropdown(allMembers, '');
-            populateBranchFilterDropdown(allMembers);
+            populateBranchFilterDropdown(allMembers, '');
             renderTree(data);
             
             setTimeout(() => {
@@ -406,20 +409,30 @@
             }, 100);
         }
 
-        // Punuon ang Branch Filter Dropdown sa ibabaw
-        function populateBranchFilterDropdown(data) {
+        // Punuon ang Branch Filter Dropdown uban ang Search filter
+        function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>';
             
             data.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.id;
-                opt.textContent = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
-                select.appendChild(opt);
+                const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
+                if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = displayName;
+                    select.appendChild(opt);
+                }
             });
-            if (currentVal) select.value = currentVal;
+            if (currentVal && Array.from(select.options).some(opt => opt.value === currentVal)) {
+                select.value = currentVal;
+            }
         }
+
+        // Listener sa Branch Search Box
+        document.getElementById('searchBranch').addEventListener('input', (e) => {
+            populateBranchFilterDropdown(allMembers, e.target.value);
+        });
 
         // Inig-ilis sa Branch Filter
         function onBranchFilterChange() {
@@ -427,7 +440,6 @@
             if (!selectedId) {
                 renderTree(allMembers);
             } else {
-                // Kuhaon ang napiling miyembro ug tanan niyang kaliwat (descendants)
                 const targetIds = getDescendantIds(selectedId, allMembers);
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
                 renderTree(filtered, selectedId);
@@ -435,7 +447,6 @@
             setTimeout(() => centerTree(), 100);
         }
 
-        // Helper: Kuhaon ang ID sa tawo ug tanan niyang anak/apo paubos
         function getDescendantIds(rootId, members) {
             let ids = new Set([rootId]);
             let queue = [rootId];
@@ -486,7 +497,6 @@
             });
 
             members.forEach(m => {
-                // Kung naay focusRootId, ang gi-focus nga tawo ang himuong root node kung wala na ang iyang parent sa filtered list
                 if (m.parent_id && map[m.parent_id] && (!focusRootId || m.id !== focusRootId)) {
                     map[m.parent_id].children.push(map[m.id]);
                 } else {
