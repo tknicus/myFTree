@@ -157,7 +157,10 @@
             position: relative;
             background: #fafafc;
             cursor: grab;
-            touch-action: none;
+            touch-action: none; /* Dili mo-scroll ang page kon sa tree mag-drag */
+            /* ANTI-HIGHLIGHT/TEXT SELECTION */
+            -webkit-user-select: none;
+            user-select: none;
         }
         .tree-viewport:active {
             cursor: grabbing;
@@ -166,7 +169,7 @@
         .tree-content {
             position: absolute;
             transform-origin: top center;
-            transition: transform 0.05s ease-out;
+            /* Gitangtang ang 'transition' aron WALAY DELAY ug DILI PILIT ang pag-drag */
             padding: 20px;
             display: inline-flex;
             justify-content: center;
@@ -189,6 +192,10 @@
             box-sizing: border-box;
             width: 100%;
             cursor: pointer;
+            /* ANTI-HIGHLIGHT/TEXT SELECTION */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
         .mobile-card:active {
             background-color: #f1f5f9;
@@ -281,14 +288,16 @@
             text-align: center;
             box-shadow: 0 4px 8px rgba(0,0,0,0.08);
             border: 1px solid rgba(0,0,0,0.1);
-            transition: transform 0.2s;
             min-width: 140px;
             max-width: 190px;
             background: white;
             cursor: pointer;
+            /* ANTI-HIGHLIGHT/TEXT SELECTION para di mupilit sa screen kon i-double tap */
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
         .card:hover {
-            transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
 
@@ -358,7 +367,7 @@
         <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga (Mopakita og 3 Henerasyon):</label>
-                <span style="font-size: 0.8em; color: #27ae60; margin-top:-5px; margin-bottom:5px;">💡 Tip: Pwede nimo i-<b>double tap / double-click</b> ang usa ka kahon aron siya ang mahimong sentro.</span>
+                <span style="font-size: 0.8em; color: #27ae60; margin-top:-5px; margin-bottom:5px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang usa ka kahon aron siya ang mahimong sentro.</span>
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>
@@ -413,7 +422,9 @@
         let currentScale = 0.5;
         let translateX = 0;
         let translateY = 30;
+        
         let isDragging = false;
+        let isMoving = false; // FLAG aron pugngan ang accidental clicks inig drag
         let startX, startY;
         
         // Timer alang sa Double-Tap logic
@@ -468,22 +479,30 @@
 
         function startDrag(clientX, clientY) {
             isDragging = true;
+            isMoving = false; // Reset sa status inig hikap
             startX = clientX - translateX;
             startY = clientY - translateY;
         }
 
         function onDrag(clientX, clientY) {
             if (!isDragging) return;
+            isMoving = true; // Gitiman-an nga nag-swipe, dili nag-click!
             translateX = clientX - startX;
             translateY = clientY - startY;
             updateTransform();
         }
 
-        function stopDrag() { isDragging = false; }
+        function stopDrag() { 
+            isDragging = false; 
+            // Ang isMoving ibalik sa false human og gamayng delay 
+            // aron luwas ang pagbuhi sa tudlo dili isipon nga click.
+            setTimeout(() => { isMoving = false; }, 50);
+        }
 
         viewport.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
         window.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
         window.addEventListener('mouseup', stopDrag);
+        
         viewport.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY);
         }, { passive: true });
@@ -579,32 +598,29 @@
             }
         }
         
-        // --- Custom Double Tap Logic Function ---
+        // --- CUSTOM DOUBLE TAP LOGIC FUNCTION ---
         window.handleCardTap = function(id, event) {
+            // KUNG NAG-DRAG O NAG-SWIPE, AYAW ISIPA NGA CLICK/TAP! (DILI MOUNGOT)
+            if (isMoving) return; 
+
             const currentTime = new Date().getTime();
             const tapLength = currentTime - lastCardTapTime;
             
-            // Kon ang click interval kay ubos sa 400 milliseconds, isipon nga double-tap/double-click!
             if (tapLength < 400 && tapLength > 0) {
-                // Kon virtual partner ang i-click, ayaw e-focus aron dili maguba
                 if(id.startsWith('partner-')) return;
                 
-                // I-update ang duha ka dropdown
                 document.getElementById('filterBranch').value = id;
                 document.getElementById('filterMobileBranch').value = id;
                 
-                // I-trigger ang sakto nga rendering depende sa view mode
                 if (currentViewMode === 'tree') {
                     onBranchFilterChange();
                 } else {
                     onMobileBranchFilterChange();
-                    // Kung mobile view, i-scroll up gamay aron makita ang bag-ong pinaka-ibabaw
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
                 
-                if(event) event.preventDefault(); // Pugngan ang default browser zoom kon double tap sa mobile
+                if(event) event.preventDefault();
             }
-            
             lastCardTapTime = currentTime;
         }
 
@@ -669,7 +685,6 @@
                                   (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()))) : true;
 
                     if (match || (node.children && node.children.length > 0)) {
-                        // Gi-apply ang handleCardTap dinhi (Mobile View)
                         html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
                             <div class="mobile-card-header">
                                 <div>
@@ -777,7 +792,6 @@
 
                         const hasHiddenChildren = (currentDepth >= 3 && node.children && node.children.length > 0);
 
-                        // Gi-apply ang handleCardTap dinhi ug ang event.stopPropagation sa Edit Button
                         html += `<li>
                             <div class="card ${genClass}" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
                                 <span class="name">${node.full_name}</span>
