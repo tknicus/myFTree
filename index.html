@@ -735,7 +735,7 @@
             }
         }
         
-        // --- ANG DOUBLE TAP GIGAMIT NA ANG EXACT SEARCH BOX LOGIC ---
+        // --- ANG DOUBLE TAP GIGAMIT NA ANG EKSAKTONG DROPDOWN/SEARCH LOGIC ---
         window.handleCardTap = function(id, event) {
             if (isMoving) return; 
 
@@ -750,7 +750,7 @@
                     navigationHistory.push(currentSelected);
                 }
 
-                // Gagamit na sa eksaktong dropdown / search filter logic!
+                // Diretso natong gibutang ang ID sa dropdowns ug gipatawag ang eksaktong filter function!
                 document.getElementById('filterBranch').value = id;
                 document.getElementById('filterMobileBranch').value = id;
                 
@@ -799,11 +799,14 @@
                     return fName.includes(safeFilter) || pName.includes(safeFilter);
                 });
             } else if (focusRootId) {
-                // Kung naay gi-focus, i-sort aron ang gi-tap mauna sa ibabaw
+                // Siguraduha nga ang gi-focus nga ID mao gyud ang una sa listahan
                 filteredList = [...members].sort((a, b) => {
                     if (a.id === focusRootId) return -1;
                     if (b.id === focusRootId) return 1;
-                    return (a.generation_level || 0) - (b.generation_level || 0);
+                    if (a.generation_level !== b.generation_level) {
+                        return (a.generation_level || 0) - (b.generation_level || 0);
+                    }
+                    return (a.order || 0) - (b.order || 0);
                 });
             } else {
                 // Initial load: Gen 0 hangtod Gen 2 aron makita ang lolo ug pamilya sa sinugdanan
@@ -827,7 +830,7 @@
                 const partnerName = node.partner_name || '';
                 const motherName = node.mother_name || '';
                 
-                const children = members.filter(m => m.parent_id === node.id);
+                const children = allMembers.filter(m => m.parent_id === node.id);
 
                 html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
                     <div class="mobile-card-header">
