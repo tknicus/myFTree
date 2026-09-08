@@ -431,7 +431,7 @@
         let allMembers = [];
         let editingId = null;
         let currentViewMode = 'mobile';
-        let navigationHistory = []; // Gihuptan ang kasaysayan sa mga na-double tap
+        let navigationHistory = [];
 
         let currentScale = 0.5;
         let translateX = 0;
@@ -562,8 +562,8 @@
 
                 allMembers = data || [];
                 populateParentDropdown(allMembers, '');
-                populateBranchFilterDropdown(allMembers, '');
-                populateMobileBranchDropdown(allMembers, '');
+                populateBranchFilterDropdown(allMembers, '', '');
+                populateMobileBranchDropdown(allMembers, '', '');
                 
                 onMobileBranchFilterChange();
             } catch (err) {
@@ -572,15 +572,24 @@
             }
         }
 
-        function populateBranchFilterDropdown(data, filterText = '') {
+        // --- OPTIMIZED DROPDOWNS (GI-SIGURO NGA APIL ANG KASAMTANGANG SELECTED ID) ---
+        function populateBranchFilterDropdown(data, filterText = '', selectedId = '') {
             const select = document.getElementById('filterBranch');
-            const currentVal = select.value;
+            const currentVal = selectedId || select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
             
             const safeFilter = (filterText || '').trim().toLowerCase();
             let listToPopulate = data;
+            
             if (safeFilter === '') {
-                listToPopulate = data.slice(0, 30);
+                listToPopulate = data.slice(0, 40);
+                // Siguraduha nga ang kasamtangang napili apil sa options bisan naa sa ubos
+                if (currentVal) {
+                    const selectedMember = data.find(m => m.id === currentVal);
+                    if (selectedMember && !listToPopulate.some(m => m.id === currentVal)) {
+                        listToPopulate.push(selectedMember);
+                    }
+                }
             } else {
                 listToPopulate = data.filter(m => {
                     const fName = m.full_name || '';
@@ -601,15 +610,22 @@
             if (currentVal) select.value = currentVal;
         }
 
-        function populateMobileBranchDropdown(data, filterText = '') {
+        function populateMobileBranchDropdown(data, filterText = '', selectedId = '') {
             const select = document.getElementById('filterMobileBranch');
-            const currentVal = select.value;
+            const currentVal = selectedId || select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
             
             const safeFilter = (filterText || '').trim().toLowerCase();
             let listToPopulate = data;
+            
             if (safeFilter === '') {
-                listToPopulate = data.slice(0, 30);
+                listToPopulate = data.slice(0, 40);
+                if (currentVal) {
+                    const selectedMember = data.find(m => m.id === currentVal);
+                    if (selectedMember && !listToPopulate.some(m => m.id === currentVal)) {
+                        listToPopulate.push(selectedMember);
+                    }
+                }
             } else {
                 listToPopulate = data.filter(m => {
                     const fName = m.full_name || '';
@@ -660,11 +676,13 @@
         }
 
         document.getElementById('searchBranch').addEventListener('input', (e) => {
-            populateBranchFilterDropdown(allMembers, e.target.value);
+            const selectedId = document.getElementById('filterBranch').value;
+            populateBranchFilterDropdown(allMembers, e.target.value, selectedId);
         });
 
         document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
-            populateMobileBranchDropdown(allMembers, e.target.value);
+            const selectedId = document.getElementById('filterMobileBranch').value;
+            populateMobileBranchDropdown(allMembers, e.target.value, selectedId);
         });
 
         document.getElementById('searchParent').addEventListener('input', (e) => {
@@ -674,6 +692,10 @@
         function onBranchFilterChange() {
             const selectedId = document.getElementById('filterBranch').value;
             document.getElementById('filterMobileBranch').value = selectedId;
+            
+            populateBranchFilterDropdown(allMembers, document.getElementById('searchBranch').value, selectedId);
+            populateMobileBranchDropdown(allMembers, document.getElementById('searchMobileBranch').value, selectedId);
+
             if (!selectedId) {
                 renderTree(allMembers);
             } else {
@@ -688,6 +710,10 @@
         function onMobileBranchFilterChange() {
             const selectedId = document.getElementById('filterMobileBranch').value;
             document.getElementById('filterBranch').value = selectedId;
+            
+            populateBranchFilterDropdown(allMembers, document.getElementById('searchBranch').value, selectedId);
+            populateMobileBranchDropdown(allMembers, document.getElementById('searchMobileBranch').value, selectedId);
+
             if (!selectedId) {
                 renderMobileList(allMembers, '', null);
             } else {
