@@ -1029,6 +1029,23 @@
             const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
             const parentId = document.getElementById('parentId').value;
 
+            // --- CONFIRMATION DIALOG SA DILI PA MAG-SAVE O MAG-UPDATE ---
+            const actionText = editingId ? "I-update" : "I-save";
+            const parentMember = allMembers.find(m => m.id === parentId);
+            const parentNameDisplay = parentMember ? parentMember.full_name : "Wala (Ulo sa Punoan)";
+
+            const confirmMessage = `⚠️ SIGURO KA BA NGA ${actionText.toUpperCase()} KINING IMPORMASYON?\n\n` +
+                `👤 Ngalan: ${fullName}\n` +
+                `🔢 Pagka-sunodsunod (Order): ${orderNum}\n` +
+                `🌳 Ginikanan: ${parentNameDisplay}\n` +
+                `📅 Natawo: ${birthDate || 'Wala gibutang'}\n` +
+                `† Panaw: ${deathDate || 'Wala'}\n\n` +
+                `I-klik ang [OK] aron madayon, o [Cancel] kon gusto nimo usbon.`;
+
+            if (!confirm(confirmMessage)) {
+                return; // Hunongon ang submission kon gi-cancel sa user
+            }
+
             if (editingId) {
                 const { error } = await supabaseClient
                     .from('family_members')
