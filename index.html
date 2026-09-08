@@ -492,6 +492,9 @@
             setTimeout(() => { isMoving = false; }, 50);
         }
 
+        const viewport = document.getElementById('treeViewport');
+        const content = document.getElementById('treeContent');
+
         viewport.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
         window.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
         window.addEventListener('mouseup', stopDrag);
@@ -510,25 +513,30 @@
         }, { passive: false });
 
         async function fetchFamilyData() {
-            const { data, error } = await supabaseClient
-                .from('family_members')
-                .select('*')
-                .order('generation_level', { ascending: true })
-                .order('order', { ascending: true }); 
+            try {
+                const { data, error } = await supabaseClient
+                    .from('family_members')
+                    .select('*')
+                    .order('generation_level', { ascending: true })
+                    .order('order', { ascending: true }); 
 
-            if (error) {
-                console.error('Error:', error);
-                document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Naay error pag-load. I-refresh.</p>';
-                return;
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Naay error sa pag-load: ' + error.message + '</p>';
+                    return;
+                }
+
+                allMembers = data || [];
+                populateParentDropdown(allMembers, '');
+                populateBranchFilterDropdown(allMembers, '');
+                populateMobileBranchDropdown(allMembers, '');
+                
+                // I-load dayon ang mobile list base sa 3-gen limit
+                onMobileBranchFilterChange();
+            } catch (err) {
+                console.error('Fetch Exception:', err);
+                document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Wala na-load ang data.</p>';
             }
-
-            allMembers = data || [];
-            populateParentDropdown(allMembers, '');
-            populateBranchFilterDropdown(allMembers, '');
-            populateMobileBranchDropdown(allMembers, '');
-            
-            // Awtomatikong i-load ang Mobile List
-            onMobileBranchFilterChange();
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
@@ -666,6 +674,7 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
+        // --- BULLETPROOF MOBILE LIST RENDERER WITH VISITED GUARD ---
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
             if (!members || members.length === 0) {
@@ -678,7 +687,7 @@
 
             members.forEach(m => { map[m.id] = { ...m, children: [] }; });
             members.forEach(m => {
-                if (m.parent_id && map[m.parent_id]) {
+                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id) {
                     map[m.parent_id].children.push(map[m.id]);
                 } else {
                     roots.push(map[m.id]);
@@ -687,8 +696,7 @@
 
             roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
 
-            // SMART RENDERER: Mo-display lang sa 3 ka henerasyon gikan sa top/root kon walay search
-            function buildMobileHtml(nodes, currentDepth = 1) {
+            function buildMobileHtml(nodes, currentDepth = 1, visited = new Set()) {
                 if (!nodes || nodes.length === 0) return '';
                 let html = '';
                 
@@ -696,6 +704,9 @@
                 const isSearching = safeFilter !== '';
 
                 nodes.forEach(node => {
+                    if (visited.has(node.id)) return; // Proteksyon batok sa infinite loop
+                    visited.add(node.id);
+
                     const fullName = node.full_name || 'Walay Ngalan';
                     const partnerName = node.partner_name || '';
                     const motherName = node.mother_name || '';
@@ -717,11 +728,11 @@
                             </div>`;
                             
                         if (node.children && node.children.length > 0) {
-                            // KUTOB RA SA 3 KA GENERATION ANG I-LOAD ARON GAAN KAAYO
+                            // HUGOT NGA 3-GENERATION LIMIT ARON GAAN KAAYO SA MEMORY
                             if (isSearching || currentDepth < 3) {
                                 html += `<div class="mobile-children-list">
                                     <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
-                                html += buildMobileHtml(node.children, currentDepth + 1);
+                                html += buildMobileHtml(node.children, currentDepth + 1, new Set(visited));
                                 html += `</div>`;
                             } else {
                                 html += `<div class="mobile-children-list" style="border-top: 1px dashed #cbd5e1; margin-top:5px; padding-top:5px;">
@@ -735,21 +746,32 @@
                 return html;
             }
 
-            container.innerHTML = buildMobileHtml(roots) || '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
+            try {
+                container.innerHTML = buildMobileHtml(roots, 1, new Set()) || '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
+            } catch (err) {
+                console.error("Render error:", err);
+                container.innerHTML = '<p style="color:red; text-align:center;">Naay error sa paghimo sa listahan.</p>';
+            }
         }
 
         document.getElementById('searchMobile').addEventListener('input', (e) => {
             renderMobileList(allMembers, e.target.value);
         });
 
+        // --- BULLETPROOF TREE RENDERER WITH VISITED GUARD ---
         function renderTree(members, focusRootId = null) {
             const container = document.getElementById('tree-container');
+            if (!members || members.length === 0) {
+                container.innerHTML = '<p style="padding:20px; color:#7f8c8d;">Walay data sa tree.</p>';
+                return;
+            }
+
             const map = {};
             const roots = [];
 
             members.forEach(m => { map[m.id] = { ...m, children: [] }; });
             members.forEach(m => {
-                if (m.parent_id && map[m.parent_id] && (!focusRootId || m.id !== focusRootId)) {
+                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id && (!focusRootId || m.id !== focusRootId)) {
                     map[m.parent_id].children.push(map[m.id]);
                 } else {
                     roots.push(map[m.id]);
@@ -794,17 +816,20 @@
                 }
             });
 
-            function buildHtmlTree(nodes, currentDepth = 1) {
+            function buildHtmlTree(nodes, currentDepth = 1, visited = new Set()) {
                 if (!nodes || nodes.length === 0) return '';
                 let html = '<ul>';
                 nodes.forEach(node => {
+                    if (visited.has(node.id)) return;
+                    visited.add(node.id);
+
                     const nextDepth = node.is_virtual_partner ? currentDepth : currentDepth + 1;
                     const fullName = node.full_name || 'Walay Ngalan';
                     
                     if (node.is_virtual_partner) {
                         html += `<li><div class="card partner-branch"><span class="name">♡ ${fullName}</span></div>`;
                         if (currentDepth <= 3 && node.children && node.children.length > 0) {
-                            html += buildHtmlTree(node.children, nextDepth);
+                            html += buildHtmlTree(node.children, nextDepth, new Set(visited));
                         }
                         html += `</li>`;
                     } else {
@@ -825,7 +850,7 @@
                             </div>`;
                             
                         if (currentDepth < 3 && node.children && node.children.length > 0) {
-                            html += buildHtmlTree(node.children, nextDepth);
+                            html += buildHtmlTree(node.children, nextDepth, new Set(visited));
                         }
                         html += `</li>`;
                     }
@@ -834,7 +859,12 @@
                 return html;
             }
 
-            container.innerHTML = buildHtmlTree(roots);
+            try {
+                container.innerHTML = buildHtmlTree(roots, 1, new Set()) || '<p style="padding:20px; color:#7f8c8d;">Walay na-load nga tree.</p>';
+            } catch (err) {
+                console.error("Tree render error:", err);
+                container.innerHTML = '<p style="color:red; padding:20px;">Naay error sa pagpakita sa tree.</p>';
+            }
         }
 
         function startEdit(id) {
@@ -923,6 +953,7 @@
             }
         });
 
+        // Sugdan ang pag-load
         fetchFamilyData();
     </script>
 </body>
