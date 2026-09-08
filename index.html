@@ -357,7 +357,7 @@
                 
                 <hr style="border: 0; border-top: 1px solid #ccc; margin: 12px 0;">
                 
-                <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 Pangitaa ang Ginikanan...">
+                <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 I-type aron mangita sa Ginikanan...">
                 
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
@@ -377,9 +377,9 @@
         <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP) -->
         <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
-                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga (Mopakita og 3 Henerasyon):</label>
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
                 <span style="font-size: 0.8em; color: #27ae60; margin-top:-5px; margin-bottom:5px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang usa ka kahon aron siya ang mahimong sentro.</span>
-                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
+                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 I-type aron mangita sa Sanga...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
@@ -407,7 +407,7 @@
             <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:5px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
                 <span style="font-size: 0.8em; color: #27ae60; display:block; margin-bottom:8px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang porma aron siya ang ma-focus.</span>
-                <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
+                <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 I-type aron mangita sa Mobile Sanga...">
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
@@ -571,22 +571,32 @@
             }
         }
 
+        // --- OPTIMIZED DROPDOWNS (DILI MO-PILIT) ---
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
-            data.forEach(m => {
+            
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let listToPopulate = data;
+            if (safeFilter === '') {
+                listToPopulate = data.slice(0, 30); // Unang 30 ra una para gaan
+            } else {
+                listToPopulate = data.filter(m => {
+                    const fName = m.full_name || '';
+                    const pName = m.partner_name || '';
+                    return `${fName} ${pName}`.toLowerCase().includes(safeFilter);
+                }).slice(0, 50);
+            }
+
+            listToPopulate.forEach(m => {
                 const fName = m.full_name || 'Walay Ngalan';
                 const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
                 const displayName = `${fName} ${pName} [Gen ${m.generation_level}]`;
-                
-                const safeFilter = (filterText || '').trim().toLowerCase();
-                if (safeFilter === '' || displayName.toLowerCase().includes(safeFilter)) {
-                    const opt = document.createElement('option');
-                    opt.value = m.id;
-                    opt.textContent = displayName;
-                    select.appendChild(opt);
-                }
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = displayName;
+                select.appendChild(opt);
             });
             if (currentVal) select.value = currentVal;
         }
@@ -595,18 +605,56 @@
             const select = document.getElementById('filterMobileBranch');
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
-            data.forEach(m => {
+            
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let listToPopulate = data;
+            if (safeFilter === '') {
+                listToPopulate = data.slice(0, 30);
+            } else {
+                listToPopulate = data.filter(m => {
+                    const fName = m.full_name || '';
+                    const pName = m.partner_name || '';
+                    return `${fName} ${pName}`.toLowerCase().includes(safeFilter);
+                }).slice(0, 50);
+            }
+
+            listToPopulate.forEach(m => {
                 const fName = m.full_name || 'Walay Ngalan';
                 const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
                 const displayName = `${fName} ${pName} [Gen ${m.generation_level}]`;
-                
-                const safeFilter = (filterText || '').trim().toLowerCase();
-                if (safeFilter === '' || displayName.toLowerCase().includes(safeFilter)) {
-                    const opt = document.createElement('option');
-                    opt.value = m.id;
-                    opt.textContent = displayName;
-                    select.appendChild(opt);
-                }
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = displayName;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
+        function populateParentDropdown(data, filterText = '') {
+            const select = document.getElementById('parentId');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
+            
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let listToPopulate = data;
+            if (safeFilter === '') {
+                listToPopulate = data.slice(0, 30);
+            } else {
+                listToPopulate = data.filter(m => {
+                    const fName = m.full_name || '';
+                    const pName = m.partner_name || '';
+                    return `${fName} ${pName}`.toLowerCase().includes(safeFilter);
+                }).slice(0, 50);
+            }
+
+            listToPopulate.forEach(m => {
+                const fName = m.full_name || 'Walay Ngalan';
+                const pName = m.partner_name ? `(Asawa: ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName}`;
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = displayName;
+                select.appendChild(opt);
             });
             if (currentVal) select.value = currentVal;
         }
@@ -617,6 +665,10 @@
 
         document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
             populateMobileBranchDropdown(allMembers, e.target.value);
+        });
+
+        document.getElementById('searchParent').addEventListener('input', (e) => {
+            populateParentDropdown(allMembers, e.target.value);
         });
 
         function onBranchFilterChange() {
@@ -645,7 +697,6 @@
             }
         }
 
-        // BUTTON: BALIK SA TINUOD NGA PUNOAN
         function resetBranchFilter() {
             document.getElementById('filterBranch').value = "";
             document.getElementById('filterMobileBranch').value = "";
@@ -700,30 +751,6 @@
             }
             return ids;
         }
-
-        function populateParentDropdown(data, filterText = '') {
-            const select = document.getElementById('parentId');
-            const currentVal = select.value;
-            select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
-            data.forEach(m => {
-                const fName = m.full_name || 'Walay Ngalan';
-                const pName = m.partner_name ? `(Asawa: ${m.partner_name})` : '';
-                const displayName = `${fName} ${pName}`;
-                
-                const safeFilter = (filterText || '').trim().toLowerCase();
-                if (safeFilter === '' || displayName.toLowerCase().includes(safeFilter)) {
-                    const opt = document.createElement('option');
-                    opt.value = m.id;
-                    opt.textContent = displayName;
-                    select.appendChild(opt);
-                }
-            });
-            if (currentVal) select.value = currentVal;
-        }
-
-        document.getElementById('searchParent').addEventListener('input', (e) => {
-            populateParentDropdown(allMembers, e.target.value);
-        });
 
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
@@ -985,7 +1012,7 @@
                 if (error) alert('Wala na-save: ' + error.message);
                 else {
                     alert('Nalampuson nga nadugang sa pamilya!');
-                    document.getElementById('addForm'].reset();
+                    document.getElementById('addForm').reset();
                     resetForm();
                     fetchFamilyData();
                 }
