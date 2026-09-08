@@ -417,7 +417,7 @@
 
         let currentScale = 0.5;
         let translateX = 0;
-        let translateY = 30;
+        let translateY = 40;
         
         let isDragging = false;
         let isMoving = false; 
@@ -440,10 +440,14 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
+                // Gisiguro nga mo-center dayon sa pinaka-ulo sa saktong tiyempo
                 setTimeout(() => {
                     onBranchFilterChange();
                     centerTree();
-                }, 50);
+                }, 100);
+                setTimeout(() => {
+                    centerTree();
+                }, 350);
             } else {
                 treeViewport.style.display = 'none';
                 controlsBar.style.display = 'none';
@@ -463,8 +467,10 @@
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
             if (viewportWidth === 0) return;
+            
+            // I-compute ang hapsay nga sentro aron ang pinaka-ulo mo-landing gyud sa tunga
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
-            translateY = 30;
+            translateY = 40;
             updateTransform();
         }
 
@@ -531,7 +537,6 @@
                 populateBranchFilterDropdown(allMembers, '');
                 populateMobileBranchDropdown(allMembers, '');
                 
-                // I-load dayon ang mobile list base sa 3-gen limit
                 onMobileBranchFilterChange();
             } catch (err) {
                 console.error('Fetch Exception:', err);
@@ -597,6 +602,7 @@
                 renderTree(filtered, selectedId);
             }
             setTimeout(() => centerTree(), 100);
+            setTimeout(() => centerTree(), 300);
         }
 
         function onMobileBranchFilterChange() {
@@ -674,7 +680,6 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
-        // --- BULLETPROOF MOBILE LIST RENDERER WITH VISITED GUARD ---
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
             if (!members || members.length === 0) {
@@ -704,7 +709,7 @@
                 const isSearching = safeFilter !== '';
 
                 nodes.forEach(node => {
-                    if (visited.has(node.id)) return; // Proteksyon batok sa infinite loop
+                    if (visited.has(node.id)) return;
                     visited.add(node.id);
 
                     const fullName = node.full_name || 'Walay Ngalan';
@@ -728,7 +733,6 @@
                             </div>`;
                             
                         if (node.children && node.children.length > 0) {
-                            // HUGOT NGA 3-GENERATION LIMIT ARON GAAN KAAYO SA MEMORY
                             if (isSearching || currentDepth < 3) {
                                 html += `<div class="mobile-children-list">
                                     <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
@@ -758,7 +762,6 @@
             renderMobileList(allMembers, e.target.value);
         });
 
-        // --- BULLETPROOF TREE RENDERER WITH VISITED GUARD ---
         function renderTree(members, focusRootId = null) {
             const container = document.getElementById('tree-container');
             if (!members || members.length === 0) {
@@ -901,7 +904,7 @@
         document.getElementById('addForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const fullName = document.getElementById('fullName').value;
+            const fullName = document.getElementById('fullName'].value;
             const partnerName = document.getElementById('partnerName').value;
             const motherName = document.getElementById('motherName').value;
             const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
@@ -953,7 +956,6 @@
             }
         });
 
-        // Sugdan ang pag-load
         fetchFamilyData();
     </script>
 </body>
