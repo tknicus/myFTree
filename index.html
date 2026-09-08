@@ -188,6 +188,10 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             box-sizing: border-box;
             width: 100%;
+            cursor: pointer;
+        }
+        .mobile-card:active {
+            background-color: #f1f5f9;
         }
         .mobile-card-header {
             display: flex;
@@ -281,6 +285,7 @@
             min-width: 140px;
             max-width: 190px;
             background: white;
+            cursor: pointer;
         }
         .card:hover {
             transform: translateY(-2px);
@@ -353,6 +358,7 @@
         <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga (Mopakita og 3 Henerasyon):</label>
+                <span style="font-size: 0.8em; color: #27ae60; margin-top:-5px; margin-bottom:5px;">💡 Tip: Pwede nimo i-<b>double tap / double-click</b> ang usa ka kahon aron siya ang mahimong sentro.</span>
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>
@@ -378,7 +384,8 @@
         <!-- MOBILE CARD LIST VIEW (DEFAULT) -->
         <div class="mobile-view-container" id="mobileContainer" style="display:block;">
             <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:8px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:5px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
+                <span style="font-size: 0.8em; color: #27ae60; display:block; margin-bottom:8px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang porma aron siya ang ma-focus.</span>
                 <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
                     <option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>
@@ -408,9 +415,9 @@
         let translateY = 30;
         let isDragging = false;
         let startX, startY;
-
-        const viewport = document.getElementById('treeViewport');
-        const content = document.getElementById('treeContent');
+        
+        // Timer alang sa Double-Tap logic
+        let lastCardTapTime = 0;
 
         function switchView(mode) {
             currentViewMode = mode;
@@ -428,7 +435,7 @@
                 btnMobile.classList.remove('active');
                 
                 setTimeout(() => {
-                    onBranchFilterChange(); // Load base on filter (3 Gens limit)
+                    onBranchFilterChange();
                     centerTree();
                 }, 50);
             } else {
@@ -437,7 +444,7 @@
                 mobileContainer.style.display = 'block';
                 btnMobile.classList.add('active');
                 btnTree.classList.remove('active');
-                onMobileBranchFilterChange(); // Load base on filter
+                onMobileBranchFilterChange();
             }
         }
 
@@ -571,6 +578,35 @@
                 renderMobileList(filtered);
             }
         }
+        
+        // --- Custom Double Tap Logic Function ---
+        window.handleCardTap = function(id, event) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastCardTapTime;
+            
+            // Kon ang click interval kay ubos sa 400 milliseconds, isipon nga double-tap/double-click!
+            if (tapLength < 400 && tapLength > 0) {
+                // Kon virtual partner ang i-click, ayaw e-focus aron dili maguba
+                if(id.startsWith('partner-')) return;
+                
+                // I-update ang duha ka dropdown
+                document.getElementById('filterBranch').value = id;
+                document.getElementById('filterMobileBranch').value = id;
+                
+                // I-trigger ang sakto nga rendering depende sa view mode
+                if (currentViewMode === 'tree') {
+                    onBranchFilterChange();
+                } else {
+                    onMobileBranchFilterChange();
+                    // Kung mobile view, i-scroll up gamay aron makita ang bag-ong pinaka-ibabaw
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+                
+                if(event) event.preventDefault(); // Pugngan ang default browser zoom kon double tap sa mobile
+            }
+            
+            lastCardTapTime = currentTime;
+        }
 
         function getDescendantIds(rootId, members) {
             let ids = new Set([rootId]);
@@ -622,7 +658,6 @@
                 }
             });
 
-            // Gidugangan natog currentDepth nga counter
             function buildMobileHtml(nodes, currentDepth = 1) {
                 if (nodes.length === 0) return '';
                 let html = '';
@@ -634,7 +669,8 @@
                                   (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()))) : true;
 
                     if (match || (node.children && node.children.length > 0)) {
-                        html += `<div class="mobile-card">
+                        // Gi-apply ang handleCardTap dinhi (Mobile View)
+                        html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
                             <div class="mobile-card-header">
                                 <div>
                                     <span class="mobile-name">👤 ${fullName}</span>
@@ -642,20 +678,18 @@
                                     ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
                                     <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
                                 </div>
-                                <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
+                                <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
                             </div>`;
                             
                         if (node.children && node.children.length > 0) {
-                            // Kung nag-search or wala pa sa Depth 3, i-display ang anak
                             if (isSearching || currentDepth < 3) {
                                 html += `<div class="mobile-children-list">
                                     <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
                                 html += buildMobileHtml(node.children, currentDepth + 1);
                                 html += `</div>`;
                             } else {
-                                // Gidugangan natog pahibalo kung naay gitago nga apo
                                 html += `<div class="mobile-children-list" style="border-top: 1px dashed #cbd5e1; margin-top:5px; padding-top:5px;">
-                                    <small style="color:#7f8c8d; font-style:italic;">👇 Naa pay mga anak/apo (${node.children.length} kabuok). I-focus ang sanga ni ${node.full_name} sa taas aron makita.</small>
+                                    <small style="color:#7f8c8d; font-style:italic;">👇 Naa pay mga apo (${node.children.length} kabuok). I-double tap ang kahon ni ${node.full_name} aron makita.</small>
                                 </div>`;
                             }
                         }
@@ -724,7 +758,6 @@
                 }
             });
 
-            // Gidugangan natog currentDepth nga counter
             function buildHtmlTree(nodes, currentDepth = 1) {
                 if (nodes.length === 0) return '';
                 let html = '<ul>';
@@ -733,7 +766,6 @@
                     
                     if (node.is_virtual_partner) {
                         html += `<li><div class="card partner-branch"><span class="name">♡ ${node.full_name}</span></div>`;
-                        // Ang asawa kay dili mo-ihap isip henerasyon, so currentDepth is passed
                         if (currentDepth <= 3 && node.children && node.children.length > 0) {
                             html += buildHtmlTree(node.children, nextDepth);
                         }
@@ -743,20 +775,19 @@
                         let genClass = `gen-${node.generation_level}`;
                         if (node.generation_level > 6) genClass = 'gen-6';
 
-                        // Check if naay gitago nga descendants
                         const hasHiddenChildren = (currentDepth >= 3 && node.children && node.children.length > 0);
 
+                        // Gi-apply ang handleCardTap dinhi ug ang event.stopPropagation sa Edit Button
                         html += `<li>
-                            <div class="card ${genClass}">
+                            <div class="card ${genClass}" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
                                 <span class="name">${node.full_name}</span>
                                 ${partnerStr}
                                 <div class="card-actions">
-                                    <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
+                                    <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
                                 </div>
                                 ${hasHiddenChildren ? `<div style="font-size: 0.75em; color: #7f8c8d; margin-top: 5px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,0.1);">👇 Naa pay mga kaliwat</div>` : ''}
                             </div>`;
                             
-                        // I-render lang kung wala pa niabot sa 3rd depth
                         if (currentDepth < 3 && node.children && node.children.length > 0) {
                             html += buildHtmlTree(node.children, nextDepth);
                         }
