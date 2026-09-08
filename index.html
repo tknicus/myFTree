@@ -49,18 +49,27 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
-        button {
+        .btn-submit {
             background-color: #27ae60;
             color: white;
             font-weight: bold;
             cursor: pointer;
             border: none;
         }
-        button:hover {
+        .btn-submit:hover {
             background-color: #219653;
         }
+        .btn-cancel {
+            background-color: #e74c3c;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            display: none;
+            margin-top: 5px;
+        }
 
-        /* --- TREE STRUCTURE WITH CONNECTING LINES --- *//* Tree container wrappers */
+        /* --- TREE STRUCTURE WITH CONNECTING LINES --- */
         .tree-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -87,7 +96,6 @@
             position: relative;
             padding: 20px 8px 0 8px;
         }
-        /* Connecting lines upwards to parents */
         .tree li::before, .tree li::after {
             content: '';
             position: absolute; 
@@ -124,7 +132,7 @@
             width: 0; height: 20px;
         }
 
-        /* --- COLOR CODED CARDS PER GENERATION --- */
+        /* --- COLOR CODED CARDS --- */
         .card {
             display: inline-block;
             padding: 12px 16px;
@@ -133,7 +141,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.08);
             border: 1px solid rgba(0,0,0,0.1);
             transition: transform 0.2s;
-            min-width: 140px;
+            min-width: 150px;
             max-width: 200px;
         }
         .card:hover {
@@ -141,7 +149,6 @@
             box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
 
-        /* Henerasyon Colors */
         .gen-0 { background: #f39c12; color: white; border-color: #d68910; }
         .gen-1 { background: #3498db; color: white; border-color: #2980b9; }
         .gen-2 { background: #2ecc71; color: white; border-color: #27ae60; }
@@ -150,7 +157,24 @@
 
         .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
         .partner { font-size: 0.8em; opacity: 0.95; display: block; margin-top: 4px; }
-        .deceased { text-decoration: line-through; opacity: 0.75; }
+        
+        /* Action buttons inside card */
+        .card-actions {
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+        .card-actions button {
+            padding: 3px 8px;
+            font-size: 0.75em;
+            width: auto;
+            margin: 0;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .btn-edit { background: #f1c40f; color: #2c3e50; border: none; font-weight: bold; }
+        .btn-delete { background: #c0392b; color: white; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -158,16 +182,17 @@
     <div class="container">
         <h1>🌳 Gulle Family Tree</h1>
         
-        <!-- Porma sa Pagdugang og Sakop -->
+        <!-- Porma sa Pagdugang / Pag-edit og Sakop -->
         <div class="form-box">
-            <h3>➕ Pagdugang og Bag-ong Kapamilya</h3>
+            <h3 id="form-title">➕ Pagdugang og Bag-ong Kapamilya</h3>
             <form id="addForm">
                 <input type="text" id="fullName" placeholder="Pangalan (Ex: Juan Gulle)" required>
                 <input type="text" id="partnerName" placeholder="Pangalan sa Asawa/Bana (Kung naa)">
                 <select id="parentId" required>
                     <option value="">-- Pilia ang Ginikanan --</option>
                 </select>
-                <button type="submit">I-save sa Punoan</button>
+                <button type="submit" class="btn-submit" id="submitBtn">I-save sa Punoan</button>
+                <button type="button" class="btn-cancel" id="cancelBtn" onclick="resetForm()">Kanselahon ang Pag-edit</button>
             </form>
         </div>
 
@@ -186,6 +211,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let allMembers = [];
+        let editingId = null; // Variable para mahibal-an kung kinsa ang gi-edit
 
         async function fetchFamilyData() {
             const { data, error } = await supabaseClient
@@ -237,26 +263,18 @@
                 if (nodes.length === 0) return '';
                 let html = '<ul>';
                 nodes.forEach(node => {
-                    // Ang miyembro mismo dili nato i-strike unless explicit deceased ug walay partner nga mao ray namatay.
-                    // Apan atong susihon kung ang partner ba ang namatay (naay petsa o †).
-                    const isMemberDeceased = false; // Ang mga anak/miyembro kasagaran buhi, ang partner ang uban nitaliwan.
-                    const decClass = isMemberDeceased ? 'deceased' : '';
-                    
-                    let partnerStr = '';
-                    if (node.partner_name) {
-                        // Tan-awon nato kung ang partner ba ang nagdala sa kamatayon (e.g. naay † o petsa sama kang Benito German)
-                        const isPartnerDeceased = node.partner_name.includes('†') || node.partner_name.includes('(') || node.partner_name.includes('-');
-                        const partnerDecClass = isPartnerDeceased ? '' : ''; // I-pabilin nga normal ang partner text pero walay apil sa strikethrough ang buhi nga tawo.
-                        partnerStr = `<span class="partner">♡ ${node.partner_name}</span>`;
-                    }
-                    
+                    const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
                     let genClass = `gen-${node.generation_level}`;
                     if (node.generation_level > 4) genClass = 'gen-4';
 
                     html += `<li>
                         <div class="card ${genClass}">
-                            <span class="name ${decClass}">${node.full_name}</span>
+                            <span class="name">${node.full_name}</span>
                             ${partnerStr}
+                            <div class="card-actions">
+                                <button class="btn-edit" onclick="startEdit('${node.id}')">✏️ Edit</button>
+                                <button class="btn-delete" onclick="deleteMember('${node.id}', '${node.full_name}')">🗑️ Del</button>
+                            </div>
                         </div>`;
                     if (node.children && node.children.length > 0) {
                         html += buildHtmlTree(node.children);
@@ -270,6 +288,52 @@
             container.innerHTML = buildHtmlTree(roots);
         }
 
+        // Tawgon kung i-click ang Edit button
+        function startEdit(id) {
+            const member = allMembers.find(m => m.id === id);
+            if (!member) return;
+
+            editingId = id;
+            document.getElementById('fullName').value = member.full_name;
+            document.getElementById('partnerName').value = member.partner_name || '';
+            document.getElementById('parentId').value = member.parent_id || '';
+
+            document.getElementById('form-title').textContent = `✏️ Pag-usab sa Impormasyon: ${member.full_name}`;
+            document.getElementById('submitBtn').textContent = 'I-update ang Punoan';
+            document.getElementById('cancelBtn').style.display = 'block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Kanselahon ang pag-edit
+        window.resetForm = function() {
+            editingId = null;
+            document.getElementById('addForm').reset();
+            document.getElementById('form-title').textContent = '➕ Pagdugang og Bag-ong Kapamilya';
+            document.getElementById('submitBtn').textContent = 'I-save sa Punoan';
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+
+        // Pagtangtang (Delete) og miyembro
+        window.deleteMember = async function(id, name) {
+            if (!confirm(`Sigurado ka ba nga gusto nimong tangtangon si ${name} ug ang iyang mga sakop sa pamilya?`)) {
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('family_members')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert('Wala napapas: ' + error.message);
+            } else {
+                alert('Nalampuson nga napapas gikan sa pamilya!');
+                fetchFamilyData();
+            }
+        }
+
+        // Submit handler (para sa Add OR Update)
         document.getElementById('addForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -277,30 +341,51 @@
             const partnerName = document.getElementById('partnerName').value;
             const parentId = document.getElementById('parentId').value;
 
-            const parent = allMembers.find(m => m.id === parentId);
-            const nextGen = parent ? (parent.generation_level + 1) : 1;
-            const newId = crypto.randomUUID();
-
-            const { error } = await supabaseClient
-                .from('family_members')
-                .insert([
-                    {
-                        id: newId,
+            if (editingId) {
+                // UPDATE MODE
+                const { error } = await supabaseClient
+                    .from('family_members')
+                    .update({
                         full_name: fullName,
                         partner_name: partnerName ? partnerName : null,
-                        parent_id: parentId,
-                        generation_level: nextGen,
-                        is_deceased: false,
-                        "order": 99
-                    }
-                ]);
+                        parent_id: parentId
+                    })
+                    .eq('id', editingId);
 
-            if (error) {
-                alert('Wala na-save: ' + error.message);
+                if (error) {
+                    alert('Error sa pag-update: ' + error.message);
+                } else {
+                    alert('Nalampuson nga na-update ang impormasyon!');
+                    resetForm();
+                    fetchFamilyData();
+                }
             } else {
-                alert('Nalampuson nga nadugang sa pamilya!');
-                document.getElementById('addForm').reset();
-                fetchFamilyData();
+                // INSERT MODE (ADD NEW)
+                const parent = allMembers.find(m => m.id === parentId);
+                const nextGen = parent ? (parent.generation_level + 1) : 1;
+                const newId = crypto.randomUUID();
+
+                const { error } = await supabaseClient
+                    .from('family_members')
+                    .insert([
+                        {
+                            id: newId,
+                            full_name: fullName,
+                            partner_name: partnerName ? partnerName : null,
+                            parent_id: parentId,
+                            generation_level: nextGen,
+                            is_deceased: false,
+                            "order": 99
+                        }
+                    ]);
+
+                if (error) {
+                    alert('Wala na-save: ' + error.message);
+                } else {
+                    alert('Nalampuson nga nadugang sa pamilya!');
+                    document.getElementById('addForm').reset();
+                    fetchFamilyData();
+                }
             }
         });
 
