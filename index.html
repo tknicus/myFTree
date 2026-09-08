@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ceb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gulle Family Tree</title>
+    <!-- Import Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f3f8;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 100%;
+            width: 95%;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .form-box {
+            background: #eef2f7;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 5px solid #27ae60;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .form-box h3 {
+            margin-top: 0;
+            color: #34495e;
+        }
+        input, select, button {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: #219653;
+        }
+
+        /* --- TREE STRUCTURE WITH CONNECTING LINES --- *//* Tree container wrappers */
+        .tree-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            padding-bottom: 40px;
+        }
+        .tree {
+            display: inline-flex;
+            justify-content: center;
+            padding-top: 20px;
+            min-width: 100%;
+        }
+        .tree ul {
+            padding-top: 20px; 
+            position: relative;
+            display: flex;
+            justify-content: center;
+            list-style-type: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        .tree li {
+            text-align: center;
+            list-style-type: none;
+            position: relative;
+            padding: 20px 8px 0 8px;
+        }
+        /* Connecting lines upwards to parents */
+        .tree li::before, .tree li::after {
+            content: '';
+            position: absolute; 
+            top: 0; 
+            right: 50%;
+            border-top: 2px solid #b2bec3;
+            width: 50%; 
+            height: 20px;
+        }
+        .tree li::after {
+            right: auto; left: 50%;
+            border-left: 2px solid #b2bec3;
+        }
+        .tree li:only-child::after, .tree li:only-child::before {
+            display: none;
+        }
+        .tree li:only-child {
+            padding-top: 0;
+        }
+        .tree li:first-child::before, .tree li:last-child::after {
+            border: 0;
+        }
+        .tree li:last-child::before {
+            border-right: 2px solid #b2bec3;
+            border-radius: 0 5px 0 0;
+        }
+        .tree li:first-child::after {
+            border-radius: 5px 0 0 0;
+        }
+        .tree ul ul::before {
+            content: ''; 
+            position: absolute; top: 0; left: 50%;
+            border-left: 2px solid #b2bec3;
+            width: 0; height: 20px;
+        }
+
+        /* --- COLOR CODED CARDS PER GENERATION --- */
+        .card {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            min-width: 140px;
+            max-width: 200px;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Henerasyon Colors */
+        .gen-0 { background: #f39c12; color: white; border-color: #d68910; }
+        .gen-1 { background: #3498db; color: white; border-color: #2980b9; }
+        .gen-2 { background: #2ecc71; color: white; border-color: #27ae60; }
+        .gen-3 { background: #9b59b6; color: white; border-color: #8e44ad; }
+        .gen-4 { background: #e74c3c; color: white; border-color: #c0392b; }
+
+        .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
+        .partner { font-size: 0.8em; opacity: 0.95; display: block; margin-top: 4px; }
+        .deceased { text-decoration: line-through; opacity: 0.75; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌳 Gulle Family Tree</h1>
+        
+        <!-- Porma sa Pagdugang og Sakop -->
+        <div class="form-box">
+            <h3>➕ Pagdugang og Bag-ong Kapamilya</h3>
+            <form id="addForm">
+                <input type="text" id="fullName" placeholder="Pangalan (Ex: Juan Gulle)" required>
+                <input type="text" id="partnerName" placeholder="Pangalan sa Asawa/Bana (Kung naa)">
+                <select id="parentId" required>
+                    <option value="">-- Pilia ang Ginikanan --</option>
+                </select>
+                <button type="submit">I-save sa Punoan</button>
+            </form>
+        </div>
+
+        <h3>🌿 Ang Sanga sa Pamilya</h3>
+        <div class="tree-wrapper">
+            <div class="tree" id="tree-container">
+                <p>Nag-load sa family tree...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://cmtncehdfgccgwkldvky.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_RCEL4rmgoq9P2Qk5QdbyNw_5jXDwbTS';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allMembers = [];
+
+        async function fetchFamilyData() {
+            const { data, error } = await supabaseClient
+                .from('family_members')
+                .select('*')
+                .order('generation_level', { ascending: true })
+                .order('order', { ascending: true });
+
+            if (error) {
+                console.error('Error:', error);
+                document.getElementById('tree-container').innerHTML = '<p style="color:red;">Wala magamit ang database connection.</p>';
+                return;
+            }
+
+            allMembers = data;
+            populateParentDropdown(data);
+            renderTree(data);
+        }
+
+        function populateParentDropdown(data) {
+            const select = document.getElementById('parentId');
+            select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
+            data.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''}`;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderTree(members) {
+            const container = document.getElementById('tree-container');
+            const map = {};
+            const roots = [];
+
+            members.forEach(m => {
+                map[m.id] = { ...m, children: [] };
+            });
+
+            members.forEach(m => {
+                if (m.parent_id && map[m.parent_id]) {
+                    map[m.parent_id].children.push(map[m.id]);
+                } else {
+                    roots.push(map[m.id]);
+                }
+            });
+
+            function buildHtmlTree(nodes) {
+                if (nodes.length === 0) return '';
+                let html = '<ul>';
+                nodes.forEach(node => {
+                    // Ang miyembro mismo dili nato i-strike unless explicit deceased ug walay partner nga mao ray namatay.
+                    // Apan atong susihon kung ang partner ba ang namatay (naay petsa o †).
+                    const isMemberDeceased = false; // Ang mga anak/miyembro kasagaran buhi, ang partner ang uban nitaliwan.
+                    const decClass = isMemberDeceased ? 'deceased' : '';
+                    
+                    let partnerStr = '';
+                    if (node.partner_name) {
+                        // Tan-awon nato kung ang partner ba ang nagdala sa kamatayon (e.g. naay † o petsa sama kang Benito German)
+                        const isPartnerDeceased = node.partner_name.includes('†') || node.partner_name.includes('(') || node.partner_name.includes('-');
+                        const partnerDecClass = isPartnerDeceased ? '' : ''; // I-pabilin nga normal ang partner text pero walay apil sa strikethrough ang buhi nga tawo.
+                        partnerStr = `<span class="partner">♡ ${node.partner_name}</span>`;
+                    }
+                    
+                    let genClass = `gen-${node.generation_level}`;
+                    if (node.generation_level > 4) genClass = 'gen-4';
+
+                    html += `<li>
+                        <div class="card ${genClass}">
+                            <span class="name ${decClass}">${node.full_name}</span>
+                            ${partnerStr}
+                        </div>`;
+                    if (node.children && node.children.length > 0) {
+                        html += buildHtmlTree(node.children);
+                    }
+                    html += `</li>`;
+                });
+                html += '</ul>';
+                return html;
+            }
+
+            container.innerHTML = buildHtmlTree(roots);
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('fullName').value;
+            const partnerName = document.getElementById('partnerName').value;
+            const parentId = document.getElementById('parentId').value;
+
+            const parent = allMembers.find(m => m.id === parentId);
+            const nextGen = parent ? (parent.generation_level + 1) : 1;
+            const newId = crypto.randomUUID();
+
+            const { error } = await supabaseClient
+                .from('family_members')
+                .insert([
+                    {
+                        id: newId,
+                        full_name: fullName,
+                        partner_name: partnerName ? partnerName : null,
+                        parent_id: parentId,
+                        generation_level: nextGen,
+                        is_deceased: false,
+                        "order": 99
+                    }
+                ]);
+
+            if (error) {
+                alert('Wala na-save: ' + error.message);
+            } else {
+                alert('Nalampuson nga nadugang sa pamilya!');
+                document.getElementById('addForm').reset();
+                fetchFamilyData();
+            }
+        });
+
+        fetchFamilyData();
+    </script>
+</body>
+</html>
