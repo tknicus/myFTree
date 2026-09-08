@@ -228,6 +228,12 @@
             color: #7f8c8d;
             margin-top: 3px;
         }
+        .card-dates {
+            font-size: 0.75em;
+            color: #64748b;
+            font-style: italic;
+            margin-top: 2px;
+        }
         .mobile-children-list {
             margin-top: 8px;
             padding-left: 10px;
@@ -323,6 +329,7 @@
 
         .name { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 2px; }
         .partner { font-size: 0.75em; opacity: 0.95; display: block; margin-top: 2px; }
+        .tree-dates { font-size: 0.7em; opacity: 0.9; margin-top: 2px; display: block; font-style: italic; }
         
         .card-actions {
             margin-top: 6px;
@@ -352,6 +359,8 @@
                 <input type="text" id="fullName" placeholder="Pangalan sa Anak o Sakop" required>
                 <input type="text" id="partnerName" placeholder="Asawa/Bana (Kung naa kay kapares ang anak)">
                 <input type="text" id="motherName" placeholder="Inahan / Asawa sa Ginikanan (Ex: Josing o Norma)">
+                <input type="text" id="birthDate" placeholder="Petsa sa Pagkatawo (Opsyonal: Ex: 1950 o Jan 1, 1950)">
+                <input type="text" id="deathDate" placeholder="Petsa sa Pagpanaw (Kung namatay na: Ex: 2020)">
                 <input type="number" id="orderNum" placeholder="Pagka-sunodsunod (1 = Kamaguwangan, 2 = Sunod, etc.)" value="1" required>
                 <span class="form-hint">💡 Ibutang ang saktong order aron mosunud sila gikan sa kamaguwangan ngadto sa kamanghuran.</span>
                 
@@ -589,7 +598,6 @@
             }
         }
 
-        // --- ANG MASALIGAN NGA CENTRAL FUNCTION SA PAG-FOCUS SA SANGA ---
         function focusOnBranch(id, isFromHistory = false) {
             if (!isFromHistory && currentFocusedBranchId !== id) {
                 navigationHistory.push(currentFocusedBranchId);
@@ -752,7 +760,6 @@
         }
         
         window.handleCardTap = function(id, event) {
-            // Kon nag drag o nag lihok ang screen lapas sa 10px, ayaw gi-consider nga tap
             if (dragDistance > 10) return;
 
             const currentTime = new Date().getTime();
@@ -823,6 +830,9 @@
                 const fullName = node.full_name || 'Walay Ngalan';
                 const partnerName = node.partner_name || '';
                 const motherName = node.mother_name || '';
+                const birthDate = node.birth_date ? `Natawo: ${node.birth_date}` : '';
+                const deathDate = node.death_date ? `Panaw: ${node.death_date}` : '';
+                const dateString = [birthDate, deathDate].filter(Boolean).join(' | ');
                 
                 const children = allMembers.filter(m => m.parent_id === node.id);
 
@@ -830,6 +840,7 @@
                     <div class="mobile-card-header">
                         <div>
                             <span class="mobile-name">👤 ${fullName}</span>
+                            ${dateString ? `<div class="card-dates">📅 ${dateString}</div>` : ''}
                             ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
                             ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
                             <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
@@ -842,7 +853,8 @@
                         <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${children.length}):</small>`;
                     
                     children.slice(0, 5).forEach(child => {
-                        html += `<div style="font-size: 0.85em; color: #2c3e50; padding: 2px 0;">• ${child.full_name || 'Walay Ngalan'} ${child.partner_name ? '(♡ ' + child.partner_name + ')' : ''}</div>`;
+                        const cBirth = child.birth_date ? `(${child.birth_date})` : '';
+                        html += `<div style="font-size: 0.85em; color: #2c3e50; padding: 2px 0;">• ${child.full_name || 'Walay Ngalan'} ${cBirth} ${child.partner_name ? '(♡ ' + child.partner_name + ')' : ''}</div>`;
                     });
 
                     if (children.length > 5) {
@@ -935,6 +947,10 @@
                         html += `</li>`;
                     } else {
                         const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
+                        const bDate = node.birth_date ? node.birth_date : '';
+                        const dDate = node.death_date ? `† ${node.death_date}` : '';
+                        const dateSub = [bDate, dDate].filter(Boolean).join(' - ');
+                        
                         let genClass = `gen-${node.generation_level}`;
                         if (node.generation_level > 6) genClass = 'gen-6';
 
@@ -943,6 +959,7 @@
                         html += `<li>
                             <div class="card ${genClass}" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
                                 <span class="name">${fullName}</span>
+                                ${dateSub ? `<span class="tree-dates">${dateSub}</span>` : ''}
                                 ${partnerStr}
                                 <div class="card-actions">
                                     <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
@@ -976,6 +993,8 @@
             document.getElementById('fullName').value = member.full_name || '';
             document.getElementById('partnerName').value = member.partner_name || '';
             document.getElementById('motherName').value = member.mother_name || '';
+            document.getElementById('birthDate').value = member.birth_date || '';
+            document.getElementById('deathDate').value = member.death_date || '';
             document.getElementById('orderNum').value = member.order || 1;
             
             document.getElementById('searchParent').value = '';
@@ -1005,6 +1024,8 @@
             const fullName = document.getElementById('fullName').value;
             const partnerName = document.getElementById('partnerName').value;
             const motherName = document.getElementById('motherName').value;
+            const birthDate = document.getElementById('birthDate').value;
+            const deathDate = document.getElementById('deathDate').value;
             const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
             const parentId = document.getElementById('parentId').value;
 
@@ -1015,6 +1036,8 @@
                         full_name: fullName,
                         partner_name: partnerName ? partnerName : null,
                         mother_name: motherName ? motherName : null,
+                        birth_date: birthDate ? birthDate : null,
+                        death_date: deathDate ? deathDate : null,
                         order: orderNum,
                         parent_id: parentId
                     })
@@ -1038,10 +1061,12 @@
                         full_name: fullName,
                         partner_name: partnerName ? partnerName : null,
                         mother_name: motherName ? motherName : null,
+                        birth_date: birthDate ? birthDate : null,
+                        death_date: deathDate ? deathDate : null,
                         order: orderNum,
                         parent_id: parentId,
                         generation_level: nextGen,
-                        is_deceased: false
+                        is_deceased: deathDate ? true : false
                     }]);
 
                 if (error) alert('Wala na-save: ' + error.message);
