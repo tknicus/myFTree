@@ -417,7 +417,7 @@
 
         let currentScale = 0.5;
         let translateX = 0;
-        let translateY = 30;
+        let translateY = 40;
         
         let isDragging = false;
         let isMoving = false; 
@@ -440,11 +440,9 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
-                // Siguraduha nga i-render ug i-center dayon ang lolo sa tunga
                 onBranchFilterChange();
                 setTimeout(centerTree, 50);
                 setTimeout(centerTree, 200);
-                setTimeout(centerTree, 500);
             } else {
                 treeViewport.style.display = 'none';
                 controlsBar.style.display = 'none';
@@ -459,16 +457,32 @@
             content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
         }
 
+        // SMART CENTER FUNCTION: Gitumong gyud sa eksaktong tunga ang Lolo/Ugat card
         function centerTree() {
             if (!viewport || !content) return;
             const viewportWidth = viewport.clientWidth;
-            const contentWidth = content.scrollWidth;
             if (viewportWidth === 0) return;
-            
-            // I-compute ang hapsay nga sentro aron ang pinaka-ulo (lolo) mo-landing gyud sa tunga
-            translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
-            translateY = 30;
-            updateTransform();
+
+            const firstCard = content.querySelector('.tree .card');
+            if (firstCard) {
+                let card = firstCard;
+                let cardLeft = 0;
+                let cardWidth = card.offsetWidth;
+                while(card && card !== content) {
+                    cardLeft += card.offsetLeft;
+                    card = card.offsetParent;
+                }
+                
+                const cardCenterX = cardLeft + (cardWidth / 2);
+                translateX = (viewportWidth / 2) - (cardCenterX * currentScale);
+                translateY = 40;
+                updateTransform();
+            } else {
+                const contentWidth = content.scrollWidth;
+                translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
+                translateY = 40;
+                updateTransform();
+            }
         }
 
         function zoomIn() { currentScale = Math.min(currentScale + 0.15, 2.0); updateTransform(); }
