@@ -157,8 +157,7 @@
             position: relative;
             background: #fafafc;
             cursor: grab;
-            touch-action: none; /* Dili mo-scroll ang page kon sa tree mag-drag */
-            /* ANTI-HIGHLIGHT/TEXT SELECTION */
+            touch-action: none;
             -webkit-user-select: none;
             user-select: none;
         }
@@ -169,7 +168,6 @@
         .tree-content {
             position: absolute;
             transform-origin: top center;
-            /* Gitangtang ang 'transition' aron WALAY DELAY ug DILI PILIT ang pag-drag */
             padding: 20px;
             display: inline-flex;
             justify-content: center;
@@ -192,7 +190,6 @@
             box-sizing: border-box;
             width: 100%;
             cursor: pointer;
-            /* ANTI-HIGHLIGHT/TEXT SELECTION */
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
@@ -292,7 +289,6 @@
             max-width: 190px;
             background: white;
             cursor: pointer;
-            /* ANTI-HIGHLIGHT/TEXT SELECTION para di mupilit sa screen kon i-double tap */
             -webkit-user-select: none;
             user-select: none;
             -webkit-touch-callout: none;
@@ -424,10 +420,9 @@
         let translateY = 30;
         
         let isDragging = false;
-        let isMoving = false; // FLAG aron pugngan ang accidental clicks inig drag
+        let isMoving = false; 
         let startX, startY;
         
-        // Timer alang sa Double-Tap logic
         let lastCardTapTime = 0;
 
         function switchView(mode) {
@@ -479,14 +474,14 @@
 
         function startDrag(clientX, clientY) {
             isDragging = true;
-            isMoving = false; // Reset sa status inig hikap
+            isMoving = false;
             startX = clientX - translateX;
             startY = clientY - translateY;
         }
 
         function onDrag(clientX, clientY) {
             if (!isDragging) return;
-            isMoving = true; // Gitiman-an nga nag-swipe, dili nag-click!
+            isMoving = true;
             translateX = clientX - startX;
             translateY = clientY - startY;
             updateTransform();
@@ -494,8 +489,6 @@
 
         function stopDrag() { 
             isDragging = false; 
-            // Ang isMoving ibalik sa false human og gamayng delay 
-            // aron luwas ang pagbuhi sa tudlo dili isipon nga click.
             setTimeout(() => { isMoving = false; }, 50);
         }
 
@@ -525,14 +518,15 @@
 
             if (error) {
                 console.error('Error:', error);
+                document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Naay error pag-load. I-refresh.</p>';
                 return;
             }
 
-            allMembers = data;
+            allMembers = data || [];
             populateParentDropdown(allMembers, '');
             populateBranchFilterDropdown(allMembers, '');
             populateMobileBranchDropdown(allMembers, '');
-            renderMobileList(allMembers);
+            renderMobileList(allMembers); // Kung ok na ni, mawala na ang "Nag-load..." text
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
@@ -540,8 +534,13 @@
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>';
             data.forEach(m => {
-                const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
-                if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
+                const fName = m.full_name || 'Walay Ngalan'; // PROTEKSYON 1
+                const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName} [Gen ${m.generation_level}]`;
+                
+                const safeFilter = (filterText || '').trim().toLowerCase(); // PROTEKSYON 2
+                
+                if (safeFilter === '' || displayName.toLowerCase().includes(safeFilter)) {
                     const opt = document.createElement('option');
                     opt.value = m.id;
                     opt.textContent = displayName;
@@ -556,8 +555,13 @@
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Tan-awa ang Kinauyokan (Lolo/Lola - 3 Generations) --</option>';
             data.forEach(m => {
-                const displayName = `${m.full_name} ${m.partner_name ? '(♡ ' + m.partner_name + ')' : ''} [Gen ${m.generation_level}]`;
-                if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
+                const fName = m.full_name || 'Walay Ngalan'; // PROTEKSYON 1
+                const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName} [Gen ${m.generation_level}]`;
+                
+                const safeFilter = (filterText || '').trim().toLowerCase(); // PROTEKSYON 2
+                
+                if (safeFilter === '' || displayName.toLowerCase().includes(safeFilter)) {
                     const opt = document.createElement('option');
                     opt.value = m.id;
                     opt.textContent = displayName;
@@ -598,9 +602,7 @@
             }
         }
         
-        // --- CUSTOM DOUBLE TAP LOGIC FUNCTION ---
         window.handleCardTap = function(id, event) {
-            // KUNG NAG-DRAG O NAG-SWIPE, AYAW ISIPA NGA CLICK/TAP! (DILI MOUNGOT)
             if (isMoving) return; 
 
             const currentTime = new Date().getTime();
@@ -645,8 +647,13 @@
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
             data.forEach(m => {
-                const displayName = `${m.full_name} ${m.partner_name ? '(Asawa: ' + m.partner_name + ')' : ''}`;
-                if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
+                const fName = m.full_name || 'Walay Ngalan'; // PROTEKSYON 1
+                const pName = m.partner_name ? `(Asawa: ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName}`;
+                
+                const safeFilter = (filterText || '').trim().toLowerCase(); // PROTEKSYON 2
+                
+                if (safeFilter === '' || displayName.toLowerCase().includes(safeFilter)) {
                     const opt = document.createElement('option');
                     opt.value = m.id;
                     opt.textContent = displayName;
@@ -662,6 +669,11 @@
 
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
+            if (!members || members.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan sa database.</p>';
+                return;
+            }
+
             const map = {};
             const roots = [];
 
@@ -674,29 +686,39 @@
                 }
             });
 
+            // Para sigurado nga ang pinaka-Tigulang maoy mag-una kon Tibuok Punoan
+            roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
+
             function buildMobileHtml(nodes, currentDepth = 1) {
-                if (nodes.length === 0) return '';
+                if (!nodes || nodes.length === 0) return '';
                 let html = '';
-                const isSearching = filterText.trim() !== '';
+                
+                const safeFilter = (filterText || '').trim().toLowerCase(); // PROTEKSYON 2
+                const isSearching = safeFilter !== '';
 
                 nodes.forEach(node => {
-                    const fullName = node.full_name;
-                    const match = isSearching ? (fullName.toLowerCase().includes(filterText.toLowerCase()) || 
-                                  (node.partner_name && node.partner_name.toLowerCase().includes(filterText.toLowerCase()))) : true;
+                    const fullName = node.full_name || 'Walay Ngalan'; // PROTEKSYON 1
+                    const partnerName = node.partner_name || '';
+                    const motherName = node.mother_name || '';
+                    
+                    const match = isSearching ? 
+                        (fullName.toLowerCase().includes(safeFilter) || partnerName.toLowerCase().includes(safeFilter)) 
+                        : true;
 
                     if (match || (node.children && node.children.length > 0)) {
                         html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
                             <div class="mobile-card-header">
                                 <div>
                                     <span class="mobile-name">👤 ${fullName}</span>
-                                    ${node.partner_name ? `<div class="mobile-meta">♡ Asawa/Bana: ${node.partner_name}</div>` : ''}
-                                    ${node.mother_name ? `<div class="mobile-meta"> Inahan: ${node.mother_name}</div>` : ''}
+                                    ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
+                                    ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
                                     <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
                                 </div>
                                 <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
                             </div>`;
                             
                         if (node.children && node.children.length > 0) {
+                            // Gipadapat nako ang 3 GENERATION LIMIT dinhi sa Mobile List View!
                             if (isSearching || currentDepth < 3) {
                                 html += `<div class="mobile-children-list">
                                     <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
@@ -704,7 +726,7 @@
                                 html += `</div>`;
                             } else {
                                 html += `<div class="mobile-children-list" style="border-top: 1px dashed #cbd5e1; margin-top:5px; padding-top:5px;">
-                                    <small style="color:#7f8c8d; font-style:italic;">👇 Naa pay mga apo (${node.children.length} kabuok). I-double tap ang kahon ni ${node.full_name} aron makita.</small>
+                                    <small style="color:#7f8c8d; font-style:italic;">👇 Naa pay mga apo (${node.children.length} kabuok). I-double tap ang kahon ni ${fullName} aron makita.</small>
                                 </div>`;
                             }
                         }
@@ -774,13 +796,14 @@
             });
 
             function buildHtmlTree(nodes, currentDepth = 1) {
-                if (nodes.length === 0) return '';
+                if (!nodes || nodes.length === 0) return '';
                 let html = '<ul>';
                 nodes.forEach(node => {
                     const nextDepth = node.is_virtual_partner ? currentDepth : currentDepth + 1;
+                    const fullName = node.full_name || 'Walay Ngalan'; // PROTEKSYON 1
                     
                     if (node.is_virtual_partner) {
-                        html += `<li><div class="card partner-branch"><span class="name">♡ ${node.full_name}</span></div>`;
+                        html += `<li><div class="card partner-branch"><span class="name">♡ ${fullName}</span></div>`;
                         if (currentDepth <= 3 && node.children && node.children.length > 0) {
                             html += buildHtmlTree(node.children, nextDepth);
                         }
@@ -794,7 +817,7 @@
 
                         html += `<li>
                             <div class="card ${genClass}" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
-                                <span class="name">${node.full_name}</span>
+                                <span class="name">${fullName}</span>
                                 ${partnerStr}
                                 <div class="card-actions">
                                     <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
@@ -820,7 +843,7 @@
             if (!member) return;
 
             editingId = id;
-            document.getElementById('fullName').value = member.full_name;
+            document.getElementById('fullName').value = member.full_name || '';
             document.getElementById('partnerName').value = member.partner_name || '';
             document.getElementById('motherName').value = member.mother_name || '';
             document.getElementById('orderNum').value = member.order || 1;
@@ -829,7 +852,7 @@
             populateParentDropdown(allMembers, '');
             document.getElementById('parentId').value = member.parent_id || '';
 
-            document.getElementById('form-title').textContent = `✏️ Pag-usab sa Impormasyon: ${member.full_name}`;
+            document.getElementById('form-title').textContent = `✏️ Pag-usab sa Impormasyon: ${member.full_name || 'Sakop'}`;
             document.getElementById('submitBtn').textContent = 'I-update ang Punoan';
             document.getElementById('cancelBtn').style.display = 'block';
 
