@@ -366,7 +366,7 @@
                 <span style="font-size: 0.8em; color: #27ae60; margin-top:-5px; margin-bottom:5px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang usa ka kahon aron siya ang mahimong sentro.</span>
                 <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
-                    <option value="">-- Pilia ang Lolo/Ugat (Gen 0) --</option>
+                    <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
             </div>
             <div class="zoom-buttons">
@@ -393,7 +393,7 @@
                 <span style="font-size: 0.8em; color: #27ae60; display:block; margin-bottom:8px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang porma aron siya ang ma-focus.</span>
                 <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
-                    <option value="">-- Pilia ang Lolo/Ugat (Gen 0) --</option>
+                    <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
             </div>
             
@@ -527,14 +527,14 @@
             populateBranchFilterDropdown(allMembers, '');
             populateMobileBranchDropdown(allMembers, '');
             
-            // Paspas nga pagpasundayag sa Mobile View (Awtomatikong i-load ang Generation 0 / Roots)
+            // Awtomatikong i-load ang Mobile List
             onMobileBranchFilterChange();
         }
 
         function populateBranchFilterDropdown(data, filterText = '') {
             const select = document.getElementById('filterBranch');
             const currentVal = select.value;
-            select.innerHTML = '<option value="">-- Pilia ang Lolo/Ugat (Gen 0) --</option>';
+            select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
             data.forEach(m => {
                 const fName = m.full_name || 'Walay Ngalan';
                 const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
@@ -554,7 +554,7 @@
         function populateMobileBranchDropdown(data, filterText = '') {
             const select = document.getElementById('filterMobileBranch');
             const currentVal = select.value;
-            select.innerHTML = '<option value="">-- Pilia ang Lolo/Ugat (Gen 0) --</option>';
+            select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
             data.forEach(m => {
                 const fName = m.full_name || 'Walay Ngalan';
                 const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
@@ -582,9 +582,7 @@
         function onBranchFilterChange() {
             const selectedId = document.getElementById('filterBranch').value;
             if (!selectedId) {
-                // Kung walay gipili, ipakita ang Gen 0 ra aron gaan
-                const genZero = allMembers.filter(m => m.generation_level === 0);
-                renderTree(genZero);
+                renderTree(allMembers);
             } else {
                 const targetIds = getDescendantIds(selectedId, allMembers);
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
@@ -596,9 +594,7 @@
         function onMobileBranchFilterChange() {
             const selectedId = document.getElementById('filterMobileBranch').value;
             if (!selectedId) {
-                // Kung walay gipili sa Mobile, ipakita ang Gen 0 (Roots) ra aron paspas kaayo!
-                const genZero = allMembers.filter(m => m.generation_level === 0);
-                renderMobileList(genZero);
+                renderMobileList(allMembers);
             } else {
                 const targetIds = getDescendantIds(selectedId, allMembers);
                 const filtered = allMembers.filter(m => targetIds.has(m.id));
@@ -691,6 +687,7 @@
 
             roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
 
+            // SMART RENDERER: Mo-display lang sa 3 ka henerasyon gikan sa top/root kon walay search
             function buildMobileHtml(nodes, currentDepth = 1) {
                 if (!nodes || nodes.length === 0) return '';
                 let html = '';
@@ -720,7 +717,7 @@
                             </div>`;
                             
                         if (node.children && node.children.length > 0) {
-                            // 3-GENERATION LIMIT SA MOBILE VIEW ARON GAAN KAAYO
+                            // KUTOB RA SA 3 KA GENERATION ANG I-LOAD ARON GAAN KAAYO
                             if (isSearching || currentDepth < 3) {
                                 html += `<div class="mobile-children-list">
                                     <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
