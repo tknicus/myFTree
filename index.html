@@ -48,7 +48,7 @@
         }
         input, select, button {
             padding: 10px;
-            margin: 5px 0;
+            margin: 8px 0;
             width: 100%;
             box-sizing: border-box;
             border: 1px solid #ccc;
@@ -119,11 +119,11 @@
         .branch-filter-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 8px;
             width: 100%;
         }
         .branch-filter-group select {
-            margin: 0;
+            margin: 5px 0;
             background: white;
             border: 2px solid #27ae60;
             font-weight: bold;
@@ -329,7 +329,7 @@
                 <input type="number" id="orderNum" placeholder="Pagka-sunodsunod (1 = Kamaguwangan, 2 = Sunod, etc.)" value="1" required>
                 <span class="form-hint">💡 Ibutang ang saktong order aron mosunud sila gikan sa kamaguwangan ngadto sa kamanghuran.</span>
                 
-                <hr style="border: 0; border-top: 1px solid #ccc; margin: 10px 0;">
+                <hr style="border: 0; border-top: 1px solid #ccc; margin: 12px 0;">
                 
                 <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 Pangitaa ang Ginikanan...">
                 
@@ -352,7 +352,7 @@
         <div class="tree-header-controls" id="controlsBar" style="display:none;">
             <div class="branch-filter-group">
                 <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
-                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo..." style="margin: 0; padding: 8px;">
+                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Sanga sa Tawo...">
                 <select id="filterBranch" onchange="onBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tibuok Punoan (Tanan) --</option>
                 </select>
@@ -376,16 +376,15 @@
 
         <!-- MOBILE CARD LIST VIEW -->
         <div class="mobile-view-container" id="mobileContainer" style="display:block;">
-            <div style="margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:5px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
-                <!-- BAG-O: Search box para sa Mobile Branch Filter -->
-                <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga..." style="margin-bottom: 6px; padding: 8px;">
-                <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()" style="background:white; border:2px solid #27ae60; font-weight:bold; color:#2c3e50; margin:0;">
+            <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:8px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
+                <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
+                <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
                     <option value="">-- Tan-awa ang Tanan (Tibuok Punoan) --</option>
                 </select>
             </div>
             
-            <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px; padding: 10px;">
+            <input type="text" id="searchMobile" class="search-mobile-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
             
             <div id="mobileListContent">
                 <p>Nag-load sa mobile list...</p>
@@ -529,7 +528,6 @@
             populateBranchFilterDropdown(allMembers, e.target.value);
         });
 
-        // Search listener para sa Mobile Branch dropdown
         document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
             populateMobileBranchDropdown(allMembers, e.target.value);
         });
@@ -769,7 +767,7 @@
             e.preventDefault();
             
             const fullName = document.getElementById('fullName').value;
-            const partnerName = document.getElementById('partnerName'].value;
+            const partnerName = document.getElementById('partnerName').value;
             const motherName = document.getElementById('motherName').value;
             const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
             const parentId = document.getElementById('parentId').value;
