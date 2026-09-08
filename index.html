@@ -438,8 +438,9 @@
         let translateY = 40;
         
         let isDragging = false;
-        let isMoving = false; 
+        let hasMoved = false; 
         let startX, startY;
+        let startClientX, startClientY;
         
         let lastCardTapTime = 0;
 
@@ -508,14 +509,19 @@
 
         function startDrag(clientX, clientY) {
             isDragging = true;
-            isMoving = false;
+            hasMoved = false;
             startX = clientX - translateX;
             startY = clientY - translateY;
+            startClientX = clientX;
+            startClientY = clientY;
         }
 
         function onDrag(clientX, clientY) {
             if (!isDragging) return;
-            isMoving = true;
+            const dist = Math.hypot(clientX - startClientX, clientY - startClientY);
+            if (dist > 5) {
+                hasMoved = true;
+            }
             translateX = clientX - startX;
             translateY = clientY - startY;
             updateTransform();
@@ -523,7 +529,6 @@
 
         function stopDrag() { 
             isDragging = false; 
-            setTimeout(() => { isMoving = false; }, 50);
         }
 
         const viewport = document.getElementById('treeViewport');
@@ -735,9 +740,9 @@
             }
         }
         
-        // --- ANG DOUBLE TAP GIGAMIT NA ANG EKSAKTONG DROPDOWN/SEARCH LOGIC ---
+        // --- GI-FIX ANG HASMOVED CHECK ARON DILI NA MA-BLOCK ANG DOUBLE TAP ---
         window.handleCardTap = function(id, event) {
-            if (isMoving) return; 
+            if (hasMoved) return; // Dili na mo-block sa saktong tap kon wala gi-drag ang screen
 
             const currentTime = new Date().getTime();
             const tapLength = currentTime - lastCardTapTime;
@@ -750,7 +755,6 @@
                     navigationHistory.push(currentSelected);
                 }
 
-                // Diretso natong gibutang ang ID sa dropdowns ug gipatawag ang eksaktong filter function!
                 document.getElementById('filterBranch').value = id;
                 document.getElementById('filterMobileBranch').value = id;
                 
@@ -799,7 +803,6 @@
                     return fName.includes(safeFilter) || pName.includes(safeFilter);
                 });
             } else if (focusRootId) {
-                // Siguraduha nga ang gi-focus nga ID mao gyud ang una sa listahan
                 filteredList = [...members].sort((a, b) => {
                     if (a.id === focusRootId) return -1;
                     if (b.id === focusRootId) return 1;
@@ -809,7 +812,6 @@
                     return (a.order || 0) - (b.order || 0);
                 });
             } else {
-                // Initial load: Gen 0 hangtod Gen 2 aron makita ang lolo ug pamilya sa sinugdanan
                 filteredList = members.filter(m => (m.generation_level || 0) <= 2);
             }
 
