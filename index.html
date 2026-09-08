@@ -393,7 +393,7 @@
                 <span style="font-size: 0.8em; color: #27ae60; display:block; margin-bottom:8px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang porma aron siya ang ma-focus.</span>
                 <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 Pangitaa ang Tawo sa Mobile Sanga...">
                 <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
-                    <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
+                    <option value="">-- Pilia ang Tinuod nga Punoan (3 Gen Limit) --</option>
                 </select>
             </div>
             
@@ -440,7 +440,6 @@
                 btnTree.classList.add('active');
                 btnMobile.classList.remove('active');
                 
-                // Gisiguro nga mo-center dayon sa pinaka-ulo sa saktong tiyempo
                 setTimeout(() => {
                     onBranchFilterChange();
                     centerTree();
@@ -467,8 +466,6 @@
             const viewportWidth = viewport.clientWidth;
             const contentWidth = content.scrollWidth;
             if (viewportWidth === 0) return;
-            
-            // I-compute ang hapsay nga sentro aron ang pinaka-ulo mo-landing gyud sa tunga
             translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
             translateY = 40;
             updateTransform();
@@ -680,6 +677,7 @@
             populateParentDropdown(allMembers, e.target.value);
         });
 
+        // --- SUPER LIGHTWEIGHT MOBILE LIST RENDERER (MAX 15 ITEMS AT ONCE) ---
         function renderMobileList(members, filterText = '') {
             const container = document.getElementById('mobileListContent');
             if (!members || members.length === 0) {
@@ -687,75 +685,69 @@
                 return;
             }
 
-            const map = {};
-            const roots = [];
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let filteredList = members;
 
-            members.forEach(m => { map[m.id] = { ...m, children: [] }; });
-            members.forEach(m => {
-                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id) {
-                    map[m.parent_id].children.push(map[m.id]);
-                } else {
-                    roots.push(map[m.id]);
+            if (safeFilter !== '') {
+                filteredList = members.filter(m => {
+                    const fName = (m.full_name || '').toLowerCase();
+                    const pName = (m.partner_name || '').toLowerCase();
+                    return fName.includes(safeFilter) || pName.includes(safeFilter);
+                });
+            } else {
+                // Kon walay search, kuhaon ra ang unang 15 ka records aron DILI MO-PILIT
+                filteredList = members.slice(0, 15);
+            }
+
+            if (filteredList.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
+                return;
+            }
+
+            let html = '';
+            if (safeFilter === '' && members.length > 15) {
+                html += `<div style="background: #eef2f7; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center; font-size: 0.85em; color: #555;">
+                    💡 <i>Gipakita ang unang 15 ka sakop aron paspas. Gamita ang search box sa taas aron pangitaa ang uban.</i>
+                </div>`;
+            }
+
+            filteredList.forEach(node => {
+                const fullName = node.full_name || 'Walay Ngalan';
+                const partnerName = node.partner_name || '';
+                const motherName = node.mother_name || '';
+                
+                // Pangitaon ang mga anak niini nga sakop kon naa
+                const children = members.filter(m => m.parent_id === node.id);
+
+                html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
+                    <div class="mobile-card-header">
+                        <div>
+                            <span class="mobile-name">👤 ${fullName}</span>
+                            ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
+                            ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
+                            <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
+                        </div>
+                        <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
+                    </div>`;
+                    
+                if (children.length > 0) {
+                    html += `<div class="mobile-children-list">
+                        <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${children.length}):</small>`;
+                    
+                    // I-pakita lang ang unang 5 ka anak aron gaan
+                    children.slice(0, 5).forEach(child => {
+                        html += `<div style="font-size: 0.85em; color: #2c3e50; padding: 2px 0;">• ${child.full_name || 'Walay Ngalan'} ${child.partner_name ? '(♡ ' + child.partner_name + ')' : ''}</div>`;
+                    });
+
+                    if (children.length > 5) {
+                        html += `<small style="color:#7f8c8d; font-style:italic;">... ug uban pang mga anak. I-double tap para makita tanan.</small>`;
+                    }
+                    html += `</div>`;
                 }
+                html += `</div>`;
             });
 
-            roots.sort((a, b) => (a.generation_level || 0) - (b.generation_level || 0));
-
-            function buildMobileHtml(nodes, currentDepth = 1, visited = new Set()) {
-                if (!nodes || nodes.length === 0) return '';
-                let html = '';
-                
-                const safeFilter = (filterText || '').trim().toLowerCase();
-                const isSearching = safeFilter !== '';
-
-                nodes.forEach(node => {
-                    if (visited.has(node.id)) return;
-                    visited.add(node.id);
-
-                    const fullName = node.full_name || 'Walay Ngalan';
-                    const partnerName = node.partner_name || '';
-                    const motherName = node.mother_name || '';
-                    
-                    const match = isSearching ? 
-                        (fullName.toLowerCase().includes(safeFilter) || partnerName.toLowerCase().includes(safeFilter)) 
-                        : true;
-
-                    if (match || (node.children && node.children.length > 0)) {
-                        html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus">
-                            <div class="mobile-card-header">
-                                <div>
-                                    <span class="mobile-name">👤 ${fullName}</span>
-                                    ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
-                                    ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
-                                    <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
-                                </div>
-                                <button class="btn-edit" onclick="event.stopPropagation(); startEdit('${node.id}')">✏️ Edit</button>
-                            </div>`;
-                            
-                        if (node.children && node.children.length > 0) {
-                            if (isSearching || currentDepth < 3) {
-                                html += `<div class="mobile-children-list">
-                                    <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${node.children.length}):</small>`;
-                                html += buildMobileHtml(node.children, currentDepth + 1, new Set(visited));
-                                html += `</div>`;
-                            } else {
-                                html += `<div class="mobile-children-list" style="border-top: 1px dashed #cbd5e1; margin-top:5px; padding-top:5px;">
-                                    <small style="color:#7f8c8d; font-style:italic;">👇 Naa pay mga apo (${node.children.length} kabuok). I-double tap ang kahon ni ${fullName} aron makita.</small>
-                                </div>`;
-                            }
-                        }
-                        html += `</div>`;
-                    }
-                });
-                return html;
-            }
-
-            try {
-                container.innerHTML = buildMobileHtml(roots, 1, new Set()) || '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
-            } catch (err) {
-                console.error("Render error:", err);
-                container.innerHTML = '<p style="color:red; text-align:center;">Naay error sa paghimo sa listahan.</p>';
-            }
+            container.innerHTML = html;
         }
 
         document.getElementById('searchMobile').addEventListener('input', (e) => {
@@ -904,7 +896,7 @@
         document.getElementById('addForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const fullName = document.getElementById('fullName'].value;
+            const fullName = document.getElementById('fullName').value;
             const partnerName = document.getElementById('partnerName').value;
             const motherName = document.getElementById('motherName').value;
             const orderNum = parseInt(document.getElementById('orderNum').value) || 1;
