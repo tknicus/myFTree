@@ -21,7 +21,6 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-            overflow-x: auto;
         }
         h1 {
             text-align: center;
@@ -82,17 +81,62 @@
             margin-top: 5px;
         }
 
-        /* --- TREE STRUCTURE WITH CONNECTING LINES --- */
-        .tree-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            padding-bottom: 40px;
+        /* --- ZOOM & PAN CONTROLS --- */
+        .tree-header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
+        .zoom-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .zoom-buttons button {
+            padding: 6px 12px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: auto;
+            margin: 0;
+        }
+        .zoom-buttons button:hover {
+            background: #2980b9;
+        }
+
+        .tree-viewport {
+            width: 100%;
+            height: 600px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background: #fafafc;
+            cursor: grab;
+        }
+        .tree-viewport:active {
+            cursor: grabbing;
+        }
+
+        .tree-content {
+            position: absolute;
+            transform-origin: top center;
+            transition: transform 0.1s ease-out;
+            padding: 40px;
+            display: inline-flex;
+            justify-content: center;
+        }
+
+        /* --- TREE STRUCTURE WITH CONNECTING LINES --- */
         .tree {
             display: inline-flex;
             justify-content: center;
             padding-top: 20px;
-            min-width: 100%;
         }
         .tree ul {
             padding-top: 20px; 
@@ -148,17 +192,18 @@
         /* --- COLOR CODED CARDS --- */
         .card {
             display: inline-block;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 8px;
             text-align: center;
             box-shadow: 0 4px 8px rgba(0,0,0,0.08);
             border: 1px solid rgba(0,0,0,0.1);
             transition: transform 0.2s;
-            min-width: 150px;
-            max-width: 200px;
+            min-width: 140px;
+            max-width: 190px;
+            background: white;
         }
         .card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         }
 
@@ -171,17 +216,17 @@
         .gen-6 { background: #34495e; color: white; border-color: #2c3e50; }
         .partner-branch { background: #e67e22; color: white; border-color: #d35400; font-style: italic; }
 
-        .name { font-weight: bold; font-size: 0.95em; display: block; margin-bottom: 4px; }
-        .partner { font-size: 0.8em; opacity: 0.95; display: block; margin-top: 4px; }
+        .name { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 2px; }
+        .partner { font-size: 0.75em; opacity: 0.95; display: block; margin-top: 2px; }
         
         .card-actions {
-            margin-top: 8px;
+            margin-top: 6px;
             display: flex;
             justify-content: center;
         }
         .card-actions button {
-            padding: 4px 12px;
-            font-size: 0.8em;
+            padding: 3px 8px;
+            font-size: 0.75em;
             width: auto;
             margin: 0;
             border-radius: 3px;
@@ -207,7 +252,6 @@
                 
                 <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
                 
-                <!-- BAG-O: Search Box para sa Dropdown -->
                 <input type="text" id="searchParent" class="search-parent-box" placeholder="🔍 Pangitaa ang Ginikanan (I-type ang ngalan dinhi)...">
                 
                 <select id="parentId" required>
@@ -219,10 +263,21 @@
             </form>
         </div>
 
-        <h3>🌿 Ang Sanga sa Pamilya</h3>
-        <div class="tree-wrapper">
-            <div class="tree" id="tree-container">
-                <p>Nag-load sa family tree...</p>
+        <!-- TREE VIEWPORT UG ZOOM CONTROLS -->
+        <div class="tree-header-controls">
+            <h3>🌿 Ang Sanga sa Pamilya</h3>
+            <div class="zoom-buttons">
+                <button onclick="zoomIn()">➕ Zoom In</button>
+                <button onclick="zoomOut()">➖ Zoom Out</button>
+                <button onclick="resetZoom()">🔄 Reset View</button>
+            </div>
+        </div>
+
+        <div class="tree-viewport" id="treeViewport">
+            <div class="tree-content" id="treeContent">
+                <div class="tree" id="tree-container">
+                    <p>Nag-load sa family tree...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -235,6 +290,66 @@
 
         let allMembers = [];
         let editingId = null;
+
+        // ZOOM & PAN STATE VARIABLES
+        let currentScale = 0.8; // Sugod sa gamay nga zoom out aron makita dayon ang daghang sanga
+        let translateX = 0;
+        let translateY = 20;
+        let isDragging = false;
+        let startX, startY;
+
+        const viewport = document.getElementById('treeViewport');
+        const content = document.getElementById('treeContent');
+
+        function updateTransform() {
+            content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+        }
+
+        function zoomIn() {
+            currentScale = Math.min(currentScale + 0.15, 2.0);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            currentScale = Math.max(currentScale - 0.15, 0.2); // Pwede ma-zoom out hangtod 20%
+            updateTransform();
+        }
+
+        function resetZoom() {
+            currentScale = 0.8;
+            translateX = 0;
+            translateY = 20;
+            updateTransform();
+        }
+
+        // Mouse Drag / Pan Logic
+        viewport.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // Mouse Wheel Zoom
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        }, { passive: false });
+
 
         async function fetchFamilyData() {
             const { data, error } = await supabaseClient
@@ -250,21 +365,19 @@
             }
 
             allMembers = data;
-            populateParentDropdown(allMembers, ''); // I-load tanan sugod
+            populateParentDropdown(allMembers, '');
             renderTree(data);
+            updateTransform();
         }
 
-        // GI-UPDATE: Function aron masala (filter) ang listahan sa ginikanan
         function populateParentDropdown(data, filterText = '') {
             const select = document.getElementById('parentId');
-            const currentVal = select.value; // I-preserve ang napili kung naa
+            const currentVal = select.value;
             
             select.innerHTML = '<option value="">-- Pilia ang Ginikanan --</option>';
             
             data.forEach(m => {
                 const displayName = `${m.full_name} ${m.partner_name ? '(Asawa: ' + m.partner_name + ')' : ''}`;
-                
-                // I-check kung ang gi-type nag-match sa ngalan
                 if (filterText === '' || displayName.toLowerCase().includes(filterText.toLowerCase())) {
                     const opt = document.createElement('option');
                     opt.value = m.id;
@@ -273,13 +386,11 @@
                 }
             });
 
-            // Ibalik ang napili kung naa pa sa listahan
             if (currentVal && Array.from(select.options).some(opt => opt.value === currentVal)) {
                 select.value = currentVal;
             }
         }
 
-        // BAG-O: Listener kung mag-type ka sa Search Box
         document.getElementById('searchParent').addEventListener('input', (e) => {
             populateParentDropdown(allMembers, e.target.value);
         });
@@ -395,7 +506,6 @@
             document.getElementById('motherName').value = member.mother_name || '';
             document.getElementById('orderNum').value = member.order || 1;
             
-            // I-clear ang search box ug i-reset ang listahan aron makita tanan ginikanan
             document.getElementById('searchParent').value = '';
             populateParentDropdown(allMembers, '');
             document.getElementById('parentId').value = member.parent_id || '';
@@ -411,7 +521,6 @@
             editingId = null;
             document.getElementById('addForm').reset();
             
-            // I-reset ang search dropdown
             document.getElementById('searchParent').value = '';
             populateParentDropdown(allMembers, '');
 
