@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ceb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GERMAN Family Tree (View Only)</title>
+    <!-- Import Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f3f8;
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            max-width: 100%;
+            width: 100%;
+            margin: auto;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        .view-subtitle {
+            text-align: center;
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        .view-counter {
+            text-align: center;
+            font-size: 0.9em;
+            color: #27ae60;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: #eef2f7;
+            padding: 6px;
+            border-radius: 6px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        input, select, button {
+            padding: 10px;
+            margin: 8px 0;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        .search-branch-box {
+            background-color: #fdfefe;
+            border: 2px solid #3498db;
+            font-weight: bold;
+            color: #2980b9;
+        }
+        .btn-back-tree {
+            background-color: #e67e22;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            width: 100%;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+        .btn-back-tree:hover {
+            background-color: #d35400;
+        }
+
+        /* --- VIEW MODE SWITCHER --- */
+        .view-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .view-switcher button {
+            padding: 8px 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            width: auto;
+            background: #e2e8f0;
+            color: #475569;
+            font-size: 0.9em;
+        }
+        .view-switcher button.active {
+            background: #27ae60;
+            color: white;
+        }
+
+        /* --- CONTROLS BAR --- */
+        .tree-header-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .branch-filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+        .branch-filter-group select {
+            margin: 5px 0;
+            background: white;
+            border: 2px solid #27ae60;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .zoom-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        .zoom-buttons button {
+            padding: 6px 10px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: auto;
+            margin: 0;
+            font-size: 0.85em;
+        }
+
+        /* --- ZOOM & PAN VIEWPORT --- */
+        .tree-viewport {
+            width: 100%;
+            height: 550px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background: #fafafc;
+            cursor: grab;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .tree-viewport:active {
+            cursor: grabbing;
+        }
+
+        .tree-content {
+            position: absolute;
+            transform-origin: top center;
+            padding: 20px;
+            display: inline-flex;
+            justify-content: center;
+        }
+
+        /* --- AVATAR STYLES --- */
+        .avatar { 
+            width: 45px; height: 45px; 
+            border-radius: 50%; object-fit: cover; 
+            background-color: #ddd; border: 2px solid white; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            display: inline-block; flex-shrink: 0; 
+        }
+        .tree .avatar { 
+            margin: 0 auto 5px auto; 
+            display: block; 
+            border: 2px solid rgba(255,255,255,0.7); 
+            width: 40px; height: 40px; 
+        }
+        .mobile-header-flex { 
+            display: flex; gap: 12px; align-items: flex-start; 
+        }
+
+        /* --- MOBILE CARD LIST VIEW CONTAINER --- */
+        .mobile-view-container {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .mobile-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #3498db;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            width: 100%;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .mobile-card:active {
+            background-color: #f1f5f9;
+        }
+        .mobile-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .mobile-name {
+            font-weight: bold;
+            font-size: 1em;
+            color: #2c3e50;
+            display: block;
+        }
+        .mobile-meta {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 3px;
+        }
+        .card-dates {
+            font-size: 0.75em;
+            color: #64748b;
+            font-style: italic;
+            margin-top: 2px;
+        }
+        .mobile-children-list {
+            margin-top: 8px;
+            padding-left: 10px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 6px;
+        }
+
+        /* --- TREE STRUCTURE --- */
+        .tree {
+            display: inline-flex;
+            justify-content: center;
+            padding-top: 20px;
+        }
+        .tree ul {
+            padding-top: 20px; 
+            position: relative;
+            display: flex;
+            justify-content: center;
+            list-style-type: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        .tree li {
+            text-align: center;
+            list-style-type: none;
+            position: relative;
+            padding: 20px 8px 0 8px;
+        }
+        .tree li::before, .tree li::after {
+            content: '';
+            position: absolute; 
+            top: 0; 
+            right: 50%;
+            border-top: 2px solid #b2bec3;
+            width: 50%; 
+            height: 20px;
+        }
+        .tree li::after {
+            right: auto; left: 50%;
+            border-left: 2px solid #b2bec3;
+        }
+        .tree li:only-child::after, .tree li:only-child::before {
+            display: none;
+        }
+        .tree li:only-child {
+            padding-top: 0;
+        }
+        .tree li:first-child::before, .tree li:last-child::after {
+            border: 0;
+        }
+        .tree li:last-child::before {
+            border-right: 2px solid #b2bec3;
+            border-radius: 0 5px 0 0;
+        }
+        .tree li:first-child::after {
+            border-radius: 5px 0 0 0;
+        }
+        .tree ul ul::before {
+            content: ''; 
+            position: absolute; top: 0; left: 50%;
+            border-left: 2px solid #b2bec3;
+            width: 0; height: 20px;
+        }
+
+        /* --- CARDS --- */
+        .card {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.1);
+            min-width: 140px;
+            max-width: 190px;
+            background: white;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .gen-0 { background: #f39c12; color: white; border-color: #d68910; }
+        .gen-1 { background: #3498db; color: white; border-color: #2980b9; }
+        .gen-2 { background: #2ecc71; color: white; border-color: #27ae60; }
+        .gen-3 { background: #9b59b6; color: white; border-color: #8e44ad; }
+        .gen-4 { background: #e74c3c; color: white; border-color: #c0392b; }
+        .gen-5 { background: #1abc9c; color: white; border-color: #16a085; }
+        .gen-6 { background: #34495e; color: white; border-color: #2c3e50; }
+        .partner-branch { background: #e67e22; color: white; border-color: #d35400; font-style: italic; }
+
+        .name { font-weight: bold; font-size: 0.9em; display: block; margin-bottom: 2px; }
+        .partner { font-size: 0.75em; opacity: 0.95; display: block; margin-top: 2px; }
+        .tree-dates { font-size: 0.7em; opacity: 0.9; margin-top: 2px; display: block; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌳 GERMAN Family Tree</h1>
+        <div class="view-subtitle">📖 View-Only Mode (Tan-awanan ra alang sa pamilya)</div>
+        <div class="view-counter" id="viewCounterDisplay">👁️ Nag-load sa views...</div>
+
+        <!-- VIEW MODE SWITCHER -->
+        <div class="view-switcher">
+            <button id="btnTreeView" onclick="switchView('tree')">🌳 Tree View</button>
+            <button id="btnMobileView" class="active" onclick="switchView('mobile')">📱 Mobile List View</button>
+        </div>
+
+        <!-- CONTROLS: BRANCH FILTER + ZOOM (DESKTOP) -->
+        <div class="tree-header-controls" id="controlsBar" style="display:none;">
+            <div class="branch-filter-group">
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em;">🌿 Focus sa Sanga:</label>
+                <span style="font-size: 0.8em; color: #27ae60; margin-top:-5px; margin-bottom:5px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang usa ka kahon aron siya ang mahimong sentro.</span>
+                <input type="text" id="searchBranch" class="search-branch-box" placeholder="🔍 I-type aron mangita sa Sanga...">
+                <select id="filterBranch" onchange="onBranchFilterChange()">
+                    <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
+                </select>
+                <button type="button" class="btn-back-tree" onclick="goBackHistory()">⬅️ Balik sa Miagi (Back)</button>
+            </div>
+            <div class="zoom-buttons">
+                <button onclick="zoomIn()">➕ Zoom</button>
+                <button onclick="zoomOut()">➖ Zoom</button>
+                <button onclick="centerTree()">🎯 Center</button>
+                <button onclick="resetZoom()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <!-- DESKTOP / MOBILE TREE VIEWPORT -->
+        <div class="tree-viewport" id="treeViewport" style="display:none;">
+            <div class="tree-content" id="treeContent">
+                <div class="tree" id="tree-container">
+                    <p style="padding: 20px; color: #7f8c8d;">Nag-load sa tree...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- MOBILE CARD LIST VIEW (DEFAULT) -->
+        <div class="mobile-view-container" id="mobileContainer" style="display:block;">
+            <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label style="font-weight: bold; color: #2c3e50; font-size: 0.9em; display:block; margin-bottom:5px;">🌿 Focus sa Espesipikong Sanga (Mobile):</label>
+                <span style="font-size: 0.8em; color: #27ae60; display:block; margin-bottom:8px;">💡 Tip: Pwede nimo i-<b>double tap</b> ang porma aron siya ang ma-focus.</span>
+                <input type="text" id="searchMobileBranch" class="search-branch-box" placeholder="🔍 I-type aron mangita sa Mobile Sanga...">
+                <select id="filterMobileBranch" onchange="onMobileBranchFilterChange()">
+                    <option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>
+                </select>
+                <button type="button" class="btn-back-tree" onclick="goBackHistory()">⬅️ Balik sa Miagi (Back)</button>
+            </div>
+            
+            <input type="text" id="searchMobile" class="search-branch-box" placeholder="🔍 Pangitaa ang ngalan sa listahan..." style="margin-bottom: 15px;">
+            
+            <div id="mobileListContent">
+                <p>Nag-load sa mobile list...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://cmtncehdfgccgwkldvky.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_RCEL4rmgoq9P2Qk5QdbyNw_5jXDwbTS';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allMembers = [];
+        let currentViewMode = 'mobile';
+        let navigationHistory = [];
+        let currentFocusedBranchId = null;
+
+        let currentScale = 0.5;
+        let translateX = 0;
+        let translateY = 40;
+        
+        let isDragging = false;
+        let dragDistance = 0;
+        let startX, startY;
+        let startClientX, startClientY;
+        
+        let lastCardTapTime = 0;
+
+        // --- TRACK VIEW FUNCTION ---
+        async function trackAppView() {
+            try {
+                const hasViewed = sessionStorage.getItem('gulle_app_viewed');
+                if (!hasViewed) {
+                    await supabaseClient.from('page_views').insert([{}]);
+                    sessionStorage.setItem('gulle_app_viewed', 'true');
+                }
+
+                const { count, error } = await supabaseClient
+                    .from('page_views')
+                    .select('*', { count: 'exact', head: true });
+
+                if (!error && count !== null) {
+                    document.getElementById('viewCounterDisplay').textContent = `👁️ Kinatibuk-ang Nag-view: ${count} ka beses`;
+                } else {
+                    document.getElementById('viewCounterDisplay').textContent = `👁️ View Counter`;
+                }
+            } catch (err) {
+                console.error('Error sa view counter:', err);
+                document.getElementById('viewCounterDisplay').style.display = 'none';
+            }
+        }
+
+        function switchView(mode) {
+            currentViewMode = mode;
+            const treeViewport = document.getElementById('treeViewport');
+            const mobileContainer = document.getElementById('mobileContainer');
+            const controlsBar = document.getElementById('controlsBar');
+            const btnTree = document.getElementById('btnTreeView');
+            const btnMobile = document.getElementById('btnMobileView');
+
+            if (mode === 'tree') {
+                treeViewport.style.display = 'block';
+                controlsBar.style.display = 'flex';
+                mobileContainer.style.display = 'none';
+                btnTree.classList.add('active');
+                btnMobile.classList.remove('active');
+                
+                focusOnBranch(currentFocusedBranchId, true);
+            } else {
+                treeViewport.style.display = 'none';
+                controlsBar.style.display = 'none';
+                mobileContainer.style.display = 'block';
+                btnMobile.classList.add('active');
+                btnTree.classList.remove('active');
+                focusOnBranch(currentFocusedBranchId, true);
+            }
+        }
+
+        function updateTransform() {
+            content.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+        }
+
+        function centerTree() {
+            if (!viewport || !content) return;
+            const viewportWidth = viewport.clientWidth;
+            if (viewportWidth === 0) return;
+
+            const firstCard = content.querySelector('.tree .card');
+            if (firstCard) {
+                let card = firstCard;
+                let cardLeft = 0;
+                let cardWidth = card.offsetWidth;
+                while(card && card !== content) {
+                    cardLeft += card.offsetLeft;
+                    card = card.offsetParent;
+                }
+                
+                const cardCenterX = cardLeft + (cardWidth / 2);
+                translateX = (viewportWidth / 2) - (cardCenterX * currentScale);
+                translateY = 40;
+                updateTransform();
+            } else {
+                const contentWidth = content.scrollWidth;
+                translateX = (viewportWidth - (contentWidth * currentScale)) / 2;
+                translateY = 40;
+                updateTransform();
+            }
+        }
+
+        function zoomIn() { currentScale = Math.min(currentScale + 0.15, 2.0); updateTransform(); }
+        function zoomOut() { currentScale = Math.max(currentScale - 0.15, 0.1); updateTransform(); }
+        function resetZoom() { currentScale = 0.5; centerTree(); }
+
+        function startDrag(clientX, clientY) {
+            isDragging = true;
+            dragDistance = 0;
+            startX = clientX - translateX;
+            startY = clientY - translateY;
+            startClientX = clientX;
+            startClientY = clientY;
+        }
+
+        function onDrag(clientX, clientY) {
+            if (!isDragging) return;
+            const dist = Math.hypot(clientX - startClientX, clientY - startClientY);
+            dragDistance = Math.max(dragDistance, dist);
+            translateX = clientX - startX;
+            translateY = clientY - startY;
+            updateTransform();
+        }
+
+        function stopDrag() { 
+            isDragging = false; 
+        }
+
+        const viewport = document.getElementById('treeViewport');
+        const content = document.getElementById('treeContent');
+
+        viewport.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => onDrag(e.clientX, e.clientY));
+        window.addEventListener('mouseup', stopDrag);
+        
+        viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) startDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1) onDrag(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        window.addEventListener('touchend', stopDrag);
+
+        viewport.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) zoomIn(); else zoomOut();
+        }, { passive: false });
+
+        async function fetchFamilyData() {
+            try {
+                trackAppView();
+
+                const { data, error } = await supabaseClient
+                    .from('family_members_papa')
+                    .select('*')
+                    .order('generation_level', { ascending: true })
+                    .order('order', { ascending: true }); 
+
+                if (error) {
+                    console.error('Supabase Error:', error);
+                    document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Naay error sa pag-load: ' + error.message + '</p>';
+                    return;
+                }
+
+                allMembers = data || [];
+                populateBranchFilterDropdown(allMembers, '', '');
+                populateMobileBranchDropdown(allMembers, '', '');
+                
+                focusOnBranch(null, true);
+            } catch (err) {
+                console.error('Fetch Exception:', err);
+                document.getElementById('mobileListContent').innerHTML = '<p style="color:red; text-align:center;">Wala na-load ang data.</p>';
+            }
+        }
+
+        function ensureOptionInSelect(selectId, memberId) {
+            if (!memberId) return;
+            const select = document.getElementById(selectId);
+            const exists = Array.from(select.options).some(opt => opt.value === memberId);
+            if (!exists) {
+                const member = allMembers.find(m => m.id === memberId);
+                if (member) {
+                    const opt = document.createElement('option');
+                    opt.value = member.id;
+                    opt.textContent = `${member.full_name || 'Walay Ngalan'} ${member.partner_name ? '(♡ ' + member.partner_name + ')' : ''} [Gen ${member.generation_level}]`;
+                    select.appendChild(opt);
+                }
+            }
+        }
+
+        function focusOnBranch(id, isFromHistory = false) {
+            if (!isFromHistory && currentFocusedBranchId !== id) {
+                navigationHistory.push(currentFocusedBranchId);
+            }
+
+            currentFocusedBranchId = id || null;
+
+            ensureOptionInSelect('filterBranch', id);
+            ensureOptionInSelect('filterMobileBranch', id);
+
+            document.getElementById('filterBranch').value = id || "";
+            document.getElementById('filterMobileBranch').value = id || "";
+
+            let filteredMembers = allMembers;
+            if (id) {
+                const targetIds = getDescendantIds(id, allMembers);
+                filteredMembers = allMembers.filter(m => targetIds.has(m.id));
+            }
+
+            if (currentViewMode === 'tree') {
+                renderTree(filteredMembers, id);
+                setTimeout(centerTree, 50);
+                setTimeout(centerTree, 150);
+            } else {
+                renderMobileList(filteredMembers, document.getElementById('searchMobile').value, id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function populateBranchFilterDropdown(data, filterText = '', selectedId = '') {
+            const select = document.getElementById('filterBranch');
+            const currentVal = selectedId || select.value;
+            select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
+            
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let listToPopulate = data;
+            
+            if (safeFilter === '') {
+                listToPopulate = data.slice(0, 40);
+                if (currentVal) {
+                    const selectedMember = data.find(m => m.id === currentVal);
+                    if (selectedMember && !listToPopulate.some(m => m.id === currentVal)) {
+                        listToPopulate.push(selectedMember);
+                    }
+                }
+            } else {
+                listToPopulate = data.filter(m => {
+                    const fName = m.full_name || '';
+                    const pName = m.partner_name || '';
+                    return `${fName} ${pName}`.toLowerCase().includes(safeFilter);
+                }).slice(0, 50);
+            }
+
+            listToPopulate.forEach(m => {
+                const fName = m.full_name || 'Walay Ngalan';
+                const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName} [Gen ${m.generation_level}]`;
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = displayName;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
+        function populateMobileBranchDropdown(data, filterText = '', selectedId = '') {
+            const select = document.getElementById('filterMobileBranch');
+            const currentVal = selectedId || select.value;
+            select.innerHTML = '<option value="">-- Tan-awa ang Tinuod nga Punoan (3 Gen Limit) --</option>';
+            
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let listToPopulate = data;
+            
+            if (safeFilter === '') {
+                listToPopulate = data.slice(0, 40);
+                if (currentVal) {
+                    const selectedMember = data.find(m => m.id === currentVal);
+                    if (selectedMember && !listToPopulate.some(m => m.id === currentVal)) {
+                        listToPopulate.push(selectedMember);
+                    }
+                }
+            } else {
+                listToPopulate = data.filter(m => {
+                    const fName = m.full_name || '';
+                    const pName = m.partner_name || '';
+                    return `${fName} ${pName}`.toLowerCase().includes(safeFilter);
+                }).slice(0, 50);
+            }
+
+            listToPopulate.forEach(m => {
+                const fName = m.full_name || 'Walay Ngalan';
+                const pName = m.partner_name ? `(♡ ${m.partner_name})` : '';
+                const displayName = `${fName} ${pName} [Gen ${m.generation_level}]`;
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = displayName;
+                select.appendChild(opt);
+            });
+            if (currentVal) select.value = currentVal;
+        }
+
+        document.getElementById('searchBranch').addEventListener('input', (e) => {
+            populateBranchFilterDropdown(allMembers, e.target.value, currentFocusedBranchId);
+        });
+
+        document.getElementById('searchMobileBranch').addEventListener('input', (e) => {
+            populateMobileBranchDropdown(allMembers, e.target.value, currentFocusedBranchId);
+        });
+
+        function onBranchFilterChange() {
+            const selectedId = document.getElementById('filterBranch').value;
+            focusOnBranch(selectedId);
+        }
+
+        function onMobileBranchFilterChange() {
+            const selectedId = document.getElementById('filterMobileBranch').value;
+            focusOnBranch(selectedId);
+        }
+
+        function goBackHistory() {
+            if (navigationHistory.length > 0) {
+                const prevId = navigationHistory.pop(); 
+                focusOnBranch(prevId, true);
+            } else {
+                focusOnBranch(null, true);
+            }
+        }
+        
+        window.handleCardTap = function(id, event) {
+            if (dragDistance > 10) return;
+
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastCardTapTime;
+            
+            if (tapLength < 400 && tapLength > 0) {
+                if (id && !id.startsWith('partner-')) {
+                    focusOnBranch(id);
+                }
+                if (event) event.preventDefault();
+            }
+            lastCardTapTime = currentTime;
+        }
+
+        function getDescendantIds(rootId, members) {
+            let ids = new Set([rootId]);
+            let queue = [rootId];
+            while (queue.length > 0) {
+                let curr = queue.shift();
+                let children = members.filter(m => m.parent_id === curr);
+                for (let child of children) {
+                    if (!ids.has(child.id)) {
+                        ids.add(child.id);
+                        queue.push(child.id);
+                    }
+                }
+            }
+            return ids;
+        }
+
+        function renderMobileList(members, filterText = '', focusRootId = null) {
+            const container = document.getElementById('mobileListContent');
+            if (!members || members.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
+                return;
+            }
+
+            const safeFilter = (filterText || '').trim().toLowerCase();
+            let filteredList = members;
+
+            if (safeFilter !== '') {
+                filteredList = members.filter(m => {
+                    const fName = (m.full_name || '').toLowerCase();
+                    const pName = (m.partner_name || '').toLowerCase();
+                    return fName.includes(safeFilter) || pName.includes(safeFilter);
+                });
+            } else if (focusRootId) {
+                const focusMember = members.find(m => m.id === focusRootId);
+                const others = members.filter(m => m.id !== focusRootId);
+                filteredList = focusMember ? [focusMember, ...others] : members;
+            } else {
+                filteredList = members.filter(m => (m.generation_level || 0) <= 2);
+            }
+
+            if (filteredList.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#7f8c8d;">Walay nakit-an nga ngalan.</p>';
+                return;
+            }
+
+            let html = '';
+            if (safeFilter === '' && !focusRootId) {
+                html += `<div style="background: #eef2f7; padding: 8px; border-radius: 6px; margin-bottom: 10px; text-align: center; font-size: 0.85em; color: #555;">
+                    💡 <i>Gipakita ang tinuod nga punoan (Gen 0 hangtod Gen 2). Gamita ang search box o i-double tap ang kahon aron mag-focus.</i>
+                </div>`;
+            }
+
+            filteredList.forEach(node => {
+                const fullName = node.full_name || 'Walay Ngalan';
+                const partnerName = node.partner_name || '';
+                const motherName = node.mother_name || '';
+                const birthDate = node.birth_date ? `Natawo: ${node.birth_date}` : '';
+                const deathDate = node.death_date ? `Panaw: ${node.death_date}` : '';
+                const dateString = [birthDate, deathDate].filter(Boolean).join(' | ');
+                
+                const children = allMembers.filter(m => m.parent_id === node.id);
+
+                // --- PHOTO HTML ---
+                const photoHtml = node.photo_url 
+                    ? `<img src="${node.photo_url}" class="avatar" alt="Pic">` 
+                    : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:1.5em;color:gray;">👤</div>`;
+
+                html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
+                    <div class="mobile-card-header">
+                        <div class="mobile-header-flex">
+                            ${photoHtml}
+                            <div>
+                                <span class="mobile-name">${fullName}</span>
+                                ${dateString ? `<div class="card-dates">📅 ${dateString}</div>` : ''}
+                                ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
+                                ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
+                                <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
+                            </div>
+                        </div>
+                    </div>`;
+                    
+                if (children.length > 0) {
+                    html += `<div class="mobile-children-list">
+                        <small style="font-weight:bold; color:#27ae60; display:block; margin-bottom:5px;">Mga Anak (${children.length}):</small>`;
+                    
+                    children.slice(0, 5).forEach(child => {
+                        const cBirth = child.birth_date ? `(${child.birth_date})` : '';
+                        html += `<div style="font-size: 0.85em; color: #2c3e50; padding: 2px 0;">• ${child.full_name || 'Walay Ngalan'} ${cBirth} ${child.partner_name ? '(♡ ' + child.partner_name + ')' : ''}</div>`;
+                    });
+
+                    if (children.length > 5) {
+                        html += `<small style="color:#7f8c8d; font-style:italic;">... ug uban pang mga anak.</small>`;
+                    }
+                    html += `</div>`;
+                }
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        document.getElementById('searchMobile').addEventListener('input', (e) => {
+            renderMobileList(allMembers, e.target.value, currentFocusedBranchId);
+        });
+
+        function renderTree(members, focusRootId = null) {
+            const container = document.getElementById('tree-container');
+            if (!members || members.length === 0) {
+                container.innerHTML = '<p style="padding:20px; color:#7f8c8d;">Walay data sa tree.</p>';
+                return;
+            }
+
+            const map = {};
+            const roots = [];
+
+            members.forEach(m => { map[m.id] = { ...m, children: [] }; });
+            members.forEach(m => {
+                if (m.parent_id && map[m.parent_id] && m.parent_id !== m.id && m.id !== focusRootId) {
+                    map[m.parent_id].children.push(map[m.id]);
+                } else {
+                    roots.push(map[m.id]);
+                }
+            });
+
+            Object.values(map).forEach(parent => {
+                if (parent.children && parent.children.length > 0) {
+                    parent.children.sort((a, b) => (a.order || 99) - (b.order || 99));
+
+                    const partnersWithChildren = {};
+                    const unassignedChildren = [];
+
+                    parent.children.forEach(child => {
+                        const mother = child.mother_name ? child.mother_name.trim() : null;
+                        if (mother) {
+                            if (!partnersWithChildren[mother]) partnersWithChildren[mother] = [];
+                            partnersWithChildren[mother].push(child);
+                        } else {
+                            unassignedChildren.push(child);
+                        }
+                    });
+
+                    const partnerNames = Object.keys(partnersWithChildren);
+                    if (partnerNames.length > 0) {
+                        let newChildren = [];
+                        partnerNames.forEach(partnerName => {
+                            const virtualPartnerId = `partner-${parent.id}-${partnerName}`;
+                            const partnerNode = {
+                                id: virtualPartnerId,
+                                full_name: `Asawa: ${partnerName}`,
+                                partner_name: null,
+                                generation_level: parent.generation_level + 1,
+                                is_virtual_partner: true,
+                                children: partnersWithChildren[partnerName]
+                            };
+                            newChildren.push(partnerNode);
+                        });
+                        if (unassignedChildren.length > 0) newChildren = newChildren.concat(unassignedChildren);
+                        parent.children = newChildren;
+                    }
+                }
+            });
+
+            function buildHtmlTree(nodes, currentDepth = 1, visited = new Set()) {
+                if (!nodes || nodes.length === 0) return '';
+                let html = '<ul>';
+                nodes.forEach(node => {
+                    if (visited.has(node.id)) return;
+                    visited.add(node.id);
+
+                    const nextDepth = node.is_virtual_partner ? currentDepth : currentDepth + 1;
+                    const fullName = node.full_name || 'Walay Ngalan';
+                    
+                    if (node.is_virtual_partner) {
+                        html += `<li><div class="card partner-branch"><span class="name">♡ ${fullName}</span></div>`;
+                        if (currentDepth <= 3 && node.children && node.children.length > 0) {
+                            html += buildHtmlTree(node.children, nextDepth, new Set(visited));
+                        }
+                        html += `</li>`;
+                    } else {
+                        const partnerStr = node.partner_name ? `<span class="partner">♡ ${node.partner_name}</span>` : '';
+                        const bDate = node.birth_date ? node.birth_date : '';
+                        const dDate = node.death_date ? `† ${node.death_date}` : '';
+                        const dateSub = [bDate, dDate].filter(Boolean).join(' - ');
+                        
+                        let genClass = `gen-${node.generation_level}`;
+                        if (node.generation_level > 6) genClass = 'gen-6';
+
+                        const hasHiddenChildren = (currentDepth >= 3 && node.children && node.children.length > 0);
+                        
+                        // --- PHOTO HTML TREE ---
+                        const photoHtml = node.photo_url ? `<img src="${node.photo_url}" class="avatar" alt="Pic">` : ``;
+
+                        html += `<li>
+                            <div class="card ${genClass}" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
+                                ${photoHtml}
+                                <span class="name">${fullName}</span>
+                                ${dateSub ? `<span class="tree-dates">${dateSub}</span>` : ''}
+                                ${partnerStr}
+                                ${hasHiddenChildren ? `<div style="font-size: 0.75em; color: #7f8c8d; margin-top: 5px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,0.1);">👇 Naa pay mga kaliwat</div>` : ''}
+                            </div>`;
+                            
+                        if (currentDepth < 3 && node.children && node.children.length > 0) {
+                            html += buildHtmlTree(node.children, nextDepth, new Set(visited));
+                        }
+                        html += `</li>`;
+                    }
+                });
+                html += '</ul>';
+                return html;
+            }
+
+            try {
+                container.innerHTML = buildHtmlTree(roots, 1, new Set()) || '<p style="padding:20px; color:#7f8c8d;">Walay na-load nga tree.</p>';
+            } catch (err) {
+                console.error("Tree render error:", err);
+                container.innerHTML = '<p style="color:red; padding:20px;">Naay error sa pagpakita sa tree.</p>';
+            }
+        }
+
+        fetchFamilyData();
+    </script>
+</body>
+</html>
