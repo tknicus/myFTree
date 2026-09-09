@@ -170,6 +170,24 @@
             justify-content: center;
         }
 
+        /* --- AVATAR STYLES --- */
+        .avatar { 
+            width: 45px; height: 45px; 
+            border-radius: 50%; object-fit: cover; 
+            background-color: #ddd; border: 2px solid white; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            display: inline-block; flex-shrink: 0; 
+        }
+        .tree .avatar { 
+            margin: 0 auto 5px auto; 
+            display: block; 
+            border: 2px solid rgba(255,255,255,0.7); 
+            width: 40px; height: 40px; 
+        }
+        .mobile-header-flex { 
+            display: flex; gap: 12px; align-items: flex-start; 
+        }
+
         /* --- MOBILE CARD LIST VIEW CONTAINER --- */
         .mobile-view-container {
             display: block;
@@ -204,6 +222,7 @@
             font-weight: bold;
             font-size: 1em;
             color: #2c3e50;
+            display: block;
         }
         .mobile-meta {
             font-size: 0.8em;
@@ -400,14 +419,12 @@
         // --- TRACK VIEW FUNCTION ---
         async function trackAppView() {
             try {
-                // Susiha kung na-count na ba ni sa kasamtangang session
                 const hasViewed = sessionStorage.getItem('gulle_app_viewed');
                 if (!hasViewed) {
                     await supabaseClient.from('page_views').insert([{}]);
                     sessionStorage.setItem('gulle_app_viewed', 'true');
                 }
 
-                // Kuhaa ang kinatibuk-ang gidaghanon sa views
                 const { count, error } = await supabaseClient
                     .from('page_views')
                     .select('*', { count: 'exact', head: true });
@@ -528,7 +545,6 @@
 
         async function fetchFamilyData() {
             try {
-                // I-run ang view counter ug ang data fetching dungan
                 trackAppView();
 
                 const { data, error } = await supabaseClient
@@ -774,14 +790,22 @@
                 
                 const children = allMembers.filter(m => m.parent_id === node.id);
 
+                // --- PHOTO HTML ---
+                const photoHtml = node.photo_url 
+                    ? `<img src="${node.photo_url}" class="avatar" alt="Pic">` 
+                    : `<div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:1.5em;color:gray;">👤</div>`;
+
                 html += `<div class="mobile-card" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
                     <div class="mobile-card-header">
-                        <div>
-                            <span class="mobile-name">👤 ${fullName}</span>
-                            ${dateString ? `<div class="card-dates">📅 ${dateString}</div>` : ''}
-                            ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
-                            ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
-                            <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
+                        <div class="mobile-header-flex">
+                            ${photoHtml}
+                            <div>
+                                <span class="mobile-name">${fullName}</span>
+                                ${dateString ? `<div class="card-dates">📅 ${dateString}</div>` : ''}
+                                ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
+                                ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
+                                <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
+                            </div>
                         </div>
                     </div>`;
                     
@@ -892,9 +916,13 @@
                         if (node.generation_level > 6) genClass = 'gen-6';
 
                         const hasHiddenChildren = (currentDepth >= 3 && node.children && node.children.length > 0);
+                        
+                        // --- PHOTO HTML TREE ---
+                        const photoHtml = node.photo_url ? `<img src="${node.photo_url}" class="avatar" alt="Pic">` : ``;
 
                         html += `<li>
                             <div class="card ${genClass}" onclick="handleCardTap('${node.id}', event)" title="I-double tap aron ma-focus ni nga sanga">
+                                ${photoHtml}
                                 <span class="name">${fullName}</span>
                                 ${dateSub ? `<span class="tree-dates">${dateSub}</span>` : ''}
                                 ${partnerStr}
