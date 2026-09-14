@@ -798,6 +798,9 @@
                 const fullName = node.full_name || 'Walay Ngalan';
                 const partnerName = node.partner_name || '';
                 const motherName = node.mother_name || '';
+                // --- KUHAON ANG GINIKANAN GAMIT ANG parent_id ---
+                const parentNode = allMembers.find(m => m.id === node.parent_id);
+                const parentName = parentNode ? parentNode.full_name : '';
                 const birthDate = node.birth_date ? `Natawo: ${node.birth_date}` : '';
                 const deathDate = node.death_date ? `Panaw: ${node.death_date}` : '';
                 const dateString = [birthDate, deathDate].filter(Boolean).join(' | ');
@@ -816,6 +819,7 @@
                             <div>
                                 <span class="mobile-name">${fullName}</span>
                                 ${dateString ? `<div class="card-dates">📅 ${dateString}</div>` : ''}
+                                ${parentName ? `<div class="mobile-meta" style="color: #2980b9; font-weight: bold;">👤 Ginikanan: ${parentName}</div>` : ''}
                                 ${partnerName ? `<div class="mobile-meta">♡ Asawa/Bana: ${partnerName}</div>` : ''}
                                 ${motherName ? `<div class="mobile-meta"> Inahan: ${motherName}</div>` : ''}
                                 <div class="mobile-meta">Gen: ${node.generation_level} | Order: ${node.order || 1}</div>
